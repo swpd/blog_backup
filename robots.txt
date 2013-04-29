@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: 
+
+Sitemap: http://swpd.github.io/sitemap.xml 
