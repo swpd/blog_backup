@@ -1,0 +1,736 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Source Code | swpd.me]]></title>
+  <link href="http://swpd.github.io/blog/categories/source-code/atom.xml" rel="self"/>
+  <link href="http://swpd.github.io/"/>
+  <updated>2013-05-23T23:18:04+08:00</updated>
+  <id>http://swpd.github.io/</id>
+  <author>
+    <name><![CDATA[swpd]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Monkey HTTP Daemon Internals]]></title>
+    <link href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/"/>
+    <updated>2013-05-18T09:21:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals</id>
+    <content type="html"><![CDATA[<p><img src="/images/blog/monkey.jpg" title="&lsquo;Go! Monkey!&rsquo; &lsquo;Go! Monkey!&rsquo;" ></p>
+
+<h2>Table of Contents</h2>
+
+<ul>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#data">Basic Data Structures</a></li>
+<li><a href="#workflow">Brief Workflow</a></li>
+<li><a href="#config">Configuration</a></li>
+<li><a href="#sched">Scheduler</a></li>
+<li><a href="#clock">Clock</a></li>
+<li><a href="#hooks">Hooks</a></li>
+<li><a href="#http">HTTP Requests and Responses</a></li>
+<li><a href="#api">API Exposure</a></li>
+<li><a href="#plugins">Plugins</a></li>
+<li><a href="#appendix">Appendix</a></li>
+</ul>
+
+
+<h2>Introduction<a id='intro'></a></h2>
+
+<p><a href="http://monkey-project.com">Monkey HTTP Daemon</a> is a web server that aims to get
+the most out of the Linux platform. It comes with low resource comsumption and
+great scalability which makes it a perfect solution for embedded devices.</p>
+
+<p>Due to the compact size of Monkey&rsquo;s codebase, it is a proper place for revealing
+the internals of a event-driven HTTP web server. Spending some time on analysing
+the source code of Monkey will surely worth the cost.</p>
+
+<p>This post is about the internals of Monkey&rsquo;s critical components from the
+perspective of source code, you may consider it as a supplement of <a href="http://edsiper.linuxchile.cl/blog/2013/02/27/architecture-of-a-linux-based-web-server/">this
+post</a>
+(written by the author of Monkey). You are supposed to read it first to get a
+general view of Monkey.</p>
+
+<h2>Basic Data Structures<a id='data'></a></h2>
+
+<p>This section discusses some common data structures used in Monkey. It is relatively
+independent and fundamental so I put it as first.</p>
+
+<ul>
+<li><h3>Circular Doubly Linked List</h3></li>
+</ul>
+
+
+<p>Linked List is heavily used within Monkey&rsquo;s source code. It is used to maintain
+a list of given structures.</p>
+
+<p>The definition of List is given by <code>mk_list.h</code>:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">mk_list</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">struct</span> <span class="n">mk_list</span> <span class="o">*</span><span class="n">prev</span><span class="p">,</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Pretty simple and straight forward. But wait for a minute, where is the payload
+of a list node? Aha, the list used in Monkey is like the one used in Linux kernel.
+The payload of a list node is not held inside the <code>mk_list</code> structure, on the
+contrary a list node is embedded in a <em>host structure</em> (see Figure 1-1).</p>
+
+<p><img src="/images/blog/linked-list.png" title="&lsquo;Circular Doubly Linked List&rsquo; &lsquo;Figure 1-1 Circular Doubly Linked List&rsquo;" ></p>
+
+<p>Taken <code>mk_config_entry</code> structure(from <code>mk_config.h</code>) as an example, it contains
+a <code>mk_list</code> which is used to connect configuration entries together:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">mk_config_entry</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">key</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">val</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>As you may have noticed, there&rsquo;s an extra <code>mk_list</code> in Figure 1-1 that acts as a
+sentinel node. This convention simplifies list handling by ensuring that the list
+always has a <em>first</em> and <em>last</em> node(even with a empty list). When initializing a
+list, Monkey takes a sentinel node and set its <code>prev</code> and <code>next</code> fields to point
+to the node itself:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">void</span> <span class="nf">mk_list_init</span><span class="p">(</span><span class="k">struct</span> <span class="n">mk_list</span> <span class="o">*</span><span class="n">list</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">list</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">next</span> <span class="o">=</span> <span class="n">list</span><span class="p">;</span>
+</span><span class='line'><span class="n">list</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">prev</span> <span class="o">=</span> <span class="n">list</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Besides some common list processing functions, there are some handy macros for
+list manipulation(<code>mk_config.h</code>):</p>
+
+<p><code>mk_list_foreach(curr, head)</code>: iterate a given list and do something with every
+node of the list. <code>curr</code> is a temporary <code>mk_list</code> pointer used to hold the current
+visited node. <code>head</code> is the pointer to the head of the given list.</p>
+
+<p><code>mk_list_foreach_safe(curr, n, head)</code>: iterate a given list and do some delete
+operation to the node of the list. <code>curr</code> is a temporary <code>mk_list</code> pointer used to
+hold the current visited node. Another <code>mk_list</code> temporary pointer <code>n</code> is needed to
+retrieve the next node of <code>curr</code> in advance because <code>curr</code> is no longer exists
+before the next iteration. <code>head</code> is the pointer to the head of the given list.</p>
+
+<p><code>mk_list_entry(ptr, type, member)</code>: get the start address of a <em>host structure</em>
+of a given list node. <code>ptr</code> is a pointer to a given <code>mk_list</code> node. <code>type</code> is the
+type of the <em>host structure</em>. <code>member</code> is the name of <code>mk_list</code> field within the
+<em>host structure</em>.</p>
+
+<p>Example Usage:
+<div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span>
+</span><span class='line'> <span class="o">*</span> <span class="n">assume</span> <span class="n">the</span> <span class="n">type</span> <span class="n">of</span> <span class="n">host</span> <span class="n">structure</span> <span class="n">is</span> <span class="n">banana</span>
+</span><span class='line'> <span class="o">*</span> <span class="k">struct</span> <span class="n">banana</span> <span class="p">{</span>
+</span><span class='line'> <span class="o">*</span>     <span class="o">&amp;</span><span class="n">hellip</span><span class="p">;</span>
+</span><span class='line'> <span class="o">*</span>     <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'> <span class="o">*</span> <span class="p">};</span>
+</span><span class='line'> <span class="o">*</span> <span class="n">monkey</span> <span class="n">loves</span> <span class="n">bananas</span> <span class="o">:</span><span class="n">D</span>
+</span><span class='line'> <span class="o">*</span>
+</span><span class='line'> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">banana</span> <span class="o">*</span> <span class="n">b</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">curr</span><span class="p">,</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">next</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">mk_list_foreach</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">store</span><span class="o">-&gt;</span><span class="n">bananas</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">b</span> <span class="o">=</span> <span class="n">mk_list_entry</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">banana</span><span class="p">,</span> <span class="n">_head</span><span class="p">);</span>
+</span><span class='line'><span class="cm">/* do something with b */</span>
+</span><span class='line'><span class="n">wash</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">mk_list_foreach_safe</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="n">next</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">store</span><span class="o">-&gt;</span><span class="n">bananas</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">b</span> <span class="o">=</span> <span class="n">mk_list_entry</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">banana</span><span class="p">,</span> <span class="n">_head</span><span class="p">);</span>
+</span><span class='line'><span class="cm">/* delete from the list */</span>
+</span><span class='line'><span class="n">mk_list_del</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">b</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">_head</span><span class="p">);</span>
+</span><span class='line'><span class="cm">/* do some delete operation */</span>
+</span><span class='line'><span class="n">eat</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li><h3>String</h3></li>
+</ul>
+
+
+<p>String is the most common data structure used in Monkey, and how it is represented
+will affect the efficiency and size of Monkey. As we know, the major target of
+Monkey is embedded devices so every byte counts.</p>
+
+<p>There are two types of string representation used in Monkey, one is the native
+<code>char *</code>(a.k.a. null-terminated) and the other one is defined as <code>mk_pointer</code>
+(<code>mk_memory.h</code>):</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">typedef</span> <span class="k">struct</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">data</span><span class="p">;</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">len</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span> <span class="n">mk_pointer</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>The main difference between them is: the string that referred by one <code>mk_pointer</code>
+may also be shared by other <code>mk_pointer</code>(see Figure 1-2) while a <code>char *</code> string
+normally have a standalone copy.</p>
+
+<p>By using <code>mk_pointer</code> we can save some memory allocation and release by reusing
+the same string. This technique can also reduce memory usage and make Monkey more
+compact.</p>
+
+<p><img src="/images/blog/pointer.png" title="&lsquo;String used by multi mk_pointer&rsquo; &lsquo;Figure 1-2 String used by multi mk_pointer&rsquo;" ></p>
+
+<p>When we need to make some change to a given string that is shared by some
+<code>mk_pointer</code>, we may not manipulate in the origin string, instead we duplicate a
+seperate copy. Otherwise it may change some <code>mk_pointer</code> silently which can lead
+to unexpected result. <code>char *mk_pointer_to_buf(mk_pointer p)</code> is responsible for
+this job. It takes a <code>mk_pointer</code> as input and return a newly allocated string,
+the caller shall free the string after use.</p>
+
+<ul>
+<li><h3>Red-Black Tree</h3></li>
+</ul>
+
+
+<p>Searching is a common task for almost every program. In Monkey, we will need to
+look up the relative information frequently given a socket file descriptor. If
+we used list to organize our data, we can only do a linear search because list is
+out of order.</p>
+
+<p>In the worst case(the one we are looking for is the last), we need to travel
+through the whole list. This is an O(N) operation and as list size increases
+this maybe unacceptable for a high performance web server. And this is why
+reb-black tree is introduced into Monkey.</p>
+
+<p>If you are unfamiliar with red-black tree, it is time to pick up your undergraduate
+data structure textbook and have a quick review. Or alternatively you may refer
+to <a href="http://en.wikipedia.org/wiki/Red%E2%80%93black_tree">wikipedia</a> for introduction.</p>
+
+<p><img src="/images/blog/rbtree.png" title="&lsquo;Red-Black Tree&rsquo; &lsquo;Figure 1-3 Red-Black Tree&rsquo;" ></p>
+
+<p>The definition of red-black tree is given by <code>mk_rbtree.h</code>:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">rb_node</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">unsigned</span> <span class="kt">long</span>  <span class="n">rb_parent_color</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">RB_RED</span>      <span class="mi">0</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">RB_BLACK</span>    <span class="mi">1</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">struct</span> <span class="n">rb_node</span> <span class="o">*</span><span class="n">rb_right</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">rb_node</span> <span class="o">*</span><span class="n">rb_left</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span> <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">attribute</span><span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="p">((</span><span class="n">aligned</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">long</span><span class="p">))));</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="cm">/* The alignment might seem pointless, but allegedly CRIS needs it */</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>As with <code>mk_list</code>, an <code>mk_rbtree</code> node is also embedded in a <em>host structure</em>.</p>
+
+<h2>Brief Workflow<a id='workflow'></a></h2>
+
+<p>Before we dive into the nitty-gritty of Monkey, it is helpful to walk through the
+main function(<code>monkey.c</code>) to get a first impression of Monkey.</p>
+
+<p><img src="/images/blog/bootup.jpg" title="&lsquo;Monkey Bootup&rsquo; &lsquo;Figure 2-1 Money Bootup&rsquo;" >
+Main function demonstrates the workflow of Monkey in a high level view:</p>
+
+<ul>
+<li>As most traditional Unix program, Monkey starts with parsing command line
+options, the options are all very self-explained. Use <code>monkey -h</code> to get full
+description of options.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">while</span> <span class="p">((</span><span class="n">opt</span> <span class="o">=</span> <span class="n">getopt_long</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">DSvhp</span><span class="o">:</span><span class="n">w</span><span class="o">:</span><span class="n">c</span><span class="o">:&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="n">long_opts</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">))</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">switch</span> <span class="p">(</span><span class="n">opt</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'><span class="k">case</span> <span class="sc">&#39;v&#39;</span>:
+</span><span class='line'>    <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>After parsing options Monkey sets up signal handlers for its interesting signals
+and leave others as default (<code>mk_signals.c</code>).</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mk_signals_init</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey builds a configuration for itself, some entries of the configuration may
+be overrided by the previous parsed options. For more details of the building
+process please refer to <em><a href="#config">Configuration</a></em> section.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mk_config_start_configure</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey allocates an array <code>sched_list</code> of type <code>sched_list_node</code>(defined in
+<code>mk_scheduler.h</code>) for worker management. For example, when choosing a worker to
+handle a new user request, Monkey&rsquo;s scheduler uses the information maintained by
+<code>sched_list</code>.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mk_sched_init</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey starts to load the plugins enabled by user and read extra plugin
+configurations. For more details of plugins please refer to <em><a href="#plugins">Plugins</a></em>
+section.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mk_plugin_init</span><span class="p">();</span>
+</span><span class='line'><span class="n">mk_plugin_read_config</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey creates listening socket and binds it to default port <code>2001</code>(if not
+overrided).</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Server</span> <span class="n">listening</span> <span class="n">socket</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">config</span><span class="o">-&gt;</span><span class="n">server_fd</span> <span class="o">=</span> <span class="n">mk_socket_server</span><span class="p">(</span><span class="n">config</span><span class="o">-&gt;</span><span class="n">serverport</span><span class="p">,</span> <span class="n">config</span><span class="o">-&gt;</span><span class="n">listen_addr</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey process will turn into a daemon if it is started in daemon mode.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Running</span> <span class="n">Monkey</span> <span class="n">as</span> <span class="n">daemon</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="o">-&gt;</span><span class="n">is_daemon</span> <span class="o">==</span> <span class="n">MK_TRUE</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">mk_utils_set_daemon</span><span class="p">();</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey then creates a pid file(<code>logs/monkey.pid.2001</code> by default) which contains
+the process identification number (pid) of itself. Pid file is used for
+administrating Monkey later.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Register</span> <span class="n">PID</span> <span class="n">of</span> <span class="n">Monkey</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">mk_utils_register_pid</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey sets the timestamp of when it is started and set up two formatted human
+readable time strings, one is for logger and the other is for HTTP response headers.
+This must be done before any threads are created, otherwise some thread may
+execute before the start time recorded by Monkey.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Clock</span> <span class="n">init</span> <span class="n">that</span> <span class="n">must</span> <span class="n">happen</span> <span class="n">before</span> <span class="n">starting</span> <span class="n">threads</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">mk_clock_sequential_init</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Once timestamp is set, Monkey can start the clock thread. The clock thread will
+run in an infinite loop and update the two time strings mentioned above per second.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mk_utils_worker_spawn</span><span class="p">((</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="n">mk_clock_worker_init</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey creates some thread specific keys for later use by HTTP workers, such as
+<code>worker_sched_node</code> for scheduling client connections, etc.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Init</span> <span class="kr">thread</span> <span class="n">keys</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">mk_thread_keys_init</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>If Monkey is started by root user, it will set the uid/gid to the user specified
+in configuration.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Change</span> <span class="n">process</span> <span class="n">owner</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">mk_user_set_uidgid</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey invokes process hooks(<code>PRCTX</code>) of all the plugins, this is useful for
+plugins to set up something before entering the main infinite loop. For example,
+a plugin may require Monkey to spawn an independent thread for it.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Invoke</span> <span class="n">Plugin</span> <span class="n">PRCTX</span> <span class="n">hooks</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">mk_plugin_core_process</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey spawns HTTP worker threads for HTTP requests handling. The number of
+workers is specified in configuration, if the number is 0 Monkey will spawn HTTP
+workers depending on the cores of your CPU(one worker per core).</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Launch</span> <span class="n">monkey</span> <span class="n">http</span> <span class="n">workers</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">mk_server_launch_workers</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey waits for all HTTP worker threads to be ready by checking the <code>initialized</code>
+field of all worker schedule nodes(<code>sched_list_node</code>) every 10 milliseconds. The
+mutex lock <code>mutex_worker_init</code> is used to synchronize the status of workers, this
+ensures the status of workers won&rsquo;t change during the checking process.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Wait</span> <span class="n">until</span> <span class="n">all</span> <span class="n">workers</span> <span class="n">report</span> <span class="n">as</span> <span class="n">ready</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">ready</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">mutex_worker_init</span><span class="p">);</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">workers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">sched_list</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">initialized</span><span class="p">)</span>
+</span><span class='line'>        <span class="n">ready</span><span class="o">++</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="n">pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">mutex_worker_init</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">ready</span> <span class="o">==</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">workers</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+</span><span class='line'><span class="cm">/* wait for 10 milliseconds */</span>
+</span><span class='line'><span class="n">usleep</span><span class="p">(</span><span class="mi">10000</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Monkey enters the main loop of server(<code>mk_server.c</code>), starts listening for
+incoming sockets and then dispatches them to workers for processing. From now on,
+Monkey is good and ready! It will keep serving requests until you tell it to exit.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mk_server_loop</span><span class="p">(</span><span class="n">config</span><span class="o">-&gt;</span><span class="n">server_fd</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<h2>Configuration<a id='config'></a></h2>
+
+<p>Configuration makes Monkey easier to tweak and more flexible, this section will
+demonstrate how Monkey deal with it.</p>
+
+<ul>
+<li><h3>Configuration File Format</h3></li>
+</ul>
+
+
+<p>Monkey uses a hunman readable file format for configuration, the file is
+line-oriented and uses indent level for hierarchy. Figure 3-1 shows the hierarchy
+of a configuration file. Within the file there are one or more <em>sections</em>, under
+every section there are one or more <em>entries</em>. Besides that there are comments,
+comments are lines that start with sharp mark(<code>#</code>).</p>
+
+<p><img src="/images/blog/config.png" title="&lsquo;Configuration File Format&rsquo; &lsquo;Figure 3-1 Configuration File Format&rsquo;" ></p>
+
+<p>A section groups some relative entries for certain subject, and an entry represents
+a key-value pair. Section sould be surrounded by brackets(<code>[]</code>) and every entry&rsquo;s
+key and value are seperated by a whitespace. Monkey comes with comprehensive
+configuration documentation, you may want to check out <code>conf/monkey.conf</code> for more
+details about how every entry affect Monkey&rsquo;s behaviour.</p>
+
+<ul>
+<li><h3>File to Memory Mapping</h3></li>
+<li><h3>Virtual Hosts</h3></li>
+</ul>
+
+
+<h2>Scheduler<a id='sched'></a></h2>
+
+<h2>Clock<a id='clock'></a></h2>
+
+<h2>Hooks<a id='hooks'></a></h2>
+
+<h2>HTTP Requests and Responses<a id='http'></a></h2>
+
+<ul>
+<li><h3>HTTP Header</h3></li>
+<li><h3>Header Cache</h3></li>
+<li><h3>Mimetype</h3></li>
+<li><h3>HTTP Method</h3></li>
+</ul>
+
+
+<h2>API Exposure<a id='api'></a></h2>
+
+<h2>Plugins<a id='plugins'></a></h2>
+
+<ul>
+<li><h3>Logger</h3></li>
+<li><h3>Cheetah</h3></li>
+<li><h3>Liana</h3></li>
+</ul>
+
+
+<h2>Appendix<a id='appendix'></a></h2>
+
+<ul>
+<li>Monkey source code structure:</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ tree
+</span><span class='line'>.
+</span><span class='line'>|&mdash; include
+</span><span class='line'>|   |&mdash; mk_env.h         [contains environment variables]
+</span><span class='line'>|   |&mdash; mk_http_status.h [defines HTTP status codes]
+</span><span class='line'>|   |&mdash; mk_info.h        [contains released information]
+</span><span class='line'>|   |&mdash; mk_limits.h      [defines upper limit of server]
+</span><span class='line'>|   |&mdash; mk_list.h        [contains linked list implementation]
+</span><span class='line'>|   |&mdash; mk_macros.h      [contains some handy helper macros]
+</span><span class='line'>|   |&mdash; MKPlugin.h       [code that related to Monkey API exposure]
+</span><span class='line'>|   &lt;code>-- *.h              [omitted header files that have corresponding c files below]
+</span><span class='line'>|-- mk_cache.c           [allows Monkey to cache HTTP headers]
+</span><span class='line'>|-- mk_clock.c           [code for Monkey's inner clock]
+</span><span class='line'>|-- mk_config.c          [code related to configuration management]
+</span><span class='line'>|-- mk_connection.c      [code related to HTTP connections management]
+</span><span class='line'>|-- mk_epoll.c           [integrates epoll for fd monitoring and event management]
+</span><span class='line'>|-- mk_file.c            [code for retrieving file information]
+</span><span class='line'>|-- mk_header.c          [HTTP header management]
+</span><span class='line'>|-- mk_http.c            [code related to HTTP lifecycle]
+</span><span class='line'>|-- mk_iov.c             [code for scatter/gather I/O]
+</span><span class='line'>|-- mk_lib.c             [code related to shared library support]
+</span><span class='line'>|-- mk_memory.c          [memory management]
+</span><span class='line'>|-- mk_method.c          [HTTP method parse helper]
+</span><span class='line'>|-- mk_mimetype.c        [HTTP mimetype management]
+</span><span class='line'>|-- mk_plugin.c          [code that powers Monkey's plugin mechanism]
+</span><span class='line'>|-- mk_rbtree.c          [contains red-black tree implementation]
+</span><span class='line'>|-- mk_request.c         [in charge of HTTP requests and responses handling]
+</span><span class='line'>|-- mk_scheduler.c       [scheduler for load balancing]
+</span><span class='line'>|-- mk_server.c          [code related to server establishment]
+</span><span class='line'>|-- mk_signals.c         [code for signals handling]
+</span><span class='line'>|-- mk_socket.c          [socket manipulation utilities]
+</span><span class='line'>|-- mk_string.c          [string manipulation utilities]
+</span><span class='line'>|-- mk_user.c            [code for uid/pid convertion]
+</span><span class='line'>|-- mk_utils.c           [contains some handy helper]
+</span><span class='line'>&lt;/code>&mdash; monkey.c             [main entry point of Monkey]</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+]]></content>
+  </entry>
+  
+</feed>
