@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Source Code | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/source-code/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-05-24T21:46:33+08:00</updated>
+  <updated>2013-05-28T23:25:34+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -108,13 +108,11 @@ a <code>mk_list</code> which is used to connect configuration entries together:<
 <span class='line-number'>7</span>
 <span class='line-number'>8</span>
 <span class='line-number'>9</span>
-<span class='line-number'>10</span>
 </pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">mk_config_entry</span>
 </span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
 </span><span class='line'>
 </span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">key</span><span class="p">;</span>
 </span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">val</span><span class="p">;</span>
-</span><span class='line'>
 </span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
 </span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
 </span><span class='line'>
@@ -271,7 +269,7 @@ compact.</p>
 
 <p>When we need to make some change to a given string that is shared by some
 <code>mk_pointer</code>, we may not manipulate in the origin string, instead we duplicate a
-seperate copy. Otherwise it may change some <code>mk_pointer</code> silently which can lead
+separate copy. Otherwise it may change some <code>mk_pointer</code> silently which can lead
 to unexpected result. <code>char *mk_pointer_to_buf(mk_pointer p)</code> is responsible for
 this job. It takes a <code>mk_pointer</code> as input and return a newly allocated string,
 the caller shall free the string after use.</p>
@@ -519,6 +517,19 @@ in configuration.</li>
 </span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
 <ul>
+<li>Check if the effective user of Monkey can set the <code>O_NOATIME</code> flag for file accessing.
+If so, Monkey will request Linux not to update the last access time on the file.
+Updating last access time makes hardly any sence as normally a web server just
+send the contents of files requested by clients back.  This will improve Monkey&rsquo;s
+performance because we can save a lot of time for very often accessed files.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mk_config_sanity_check</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
 <li>Monkey invokes process hooks(<code>PRCTX</code>) of all the plugins, this is useful for
 plugins to set up something before entering the main infinite loop. For example,
 a plugin may require Monkey to spawn an independent thread for it.</li>
@@ -616,22 +627,417 @@ demonstrate how Monkey deal with it.</p>
 <p>Monkey uses a hunman readable file format for configuration, the file is
 line-oriented and uses indent level for hierarchy. Figure 3-1 shows the hierarchy
 of a configuration file. Within the file there are one or more <em>sections</em>, under
-every section there are one or more <em>entries</em>. Besides that there are comments,
+every section there are one or more <em>entries</em>. Besides these there are comments,
 comments are lines that start with sharp mark(<code>#</code>).</p>
 
 <p><img src="/images/blog/config.png" title="&lsquo;Configuration File Format&rsquo; &lsquo;Figure 3-1 Configuration File Format&rsquo;" ></p>
 
 <p>A section groups some relative entries for certain subject, and an entry represents
 a key-value pair. Section sould be surrounded by brackets(<code>[]</code>) and every entry&rsquo;s
-key and value are seperated by a whitespace. Monkey comes with comprehensive
+key and value are separated by a whitespace. Monkey comes with comprehensive
 configuration documentation, you may want to check out <code>conf/monkey.conf</code> for more
 details about how every entry affect Monkey&rsquo;s behaviour.</p>
 
 <ul>
 <li><h3>File to Memory Mapping</h3></li>
-<li><h3>Virtual Hosts</h3></li>
 </ul>
 
+
+<p>Before Monkey starts serving, it first parse some configuration files to construct
+corresponding structures(<code>mk_config</code>, defined in <code>mk_config.h</code>) that resides in
+memory. Once parse is finished, Monkey can speed up configuration information
+accessing by reading directly from memory.</p>
+
+<p>For every hierarchy level of a Monkey configuration file, there is a mapping
+structure in <code>mk_config.h</code>:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span>
+</span><span class='line'> <span class="o">*</span>          <span class="n">hierarchy</span> <span class="n">level</span> <span class="n">mapping</span>
+</span><span class='line'> <span class="o">*</span>
+</span><span class='line'> <span class="o">*</span> <span class="n">configuration</span> <span class="n">file</span>      <span class="o">===&gt;</span>    <span class="n">mk_config</span>
+</span><span class='line'> <span class="o">*</span> <span class="n">section</span>                 <span class="o">===&gt;</span>    <span class="n">mk_config_section</span>
+</span><span class='line'> <span class="o">*</span> <span class="n">entry</span><span class="p">(</span><span class="n">key</span><span class="o">-</span><span class="n">value</span> <span class="n">pair</span><span class="p">)</span>   <span class="o">===&gt;</span>    <span class="n">mk_config_entry</span>
+</span><span class='line'> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_config</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">created</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">file</span><span class="p">;</span>
+</span><span class='line'><span class="cm">/* list of sections */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">sections</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_config_section</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span><span class='line'><span class="cm">/* list of entries */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">entries</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_config_entry</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">key</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">val</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>A bunch of functions(in <code>mk_config.c</code>) are used for handling configuration file:</p>
+
+<p><code>mk_config_create</code>: given the location of a configuration file, allocate a brand
+new <code>mk_config</code>. For every section found in the file allocate a <code>mk_config_section</code>
+and for every entry allocate a <code>mk_config_entry</code>.  All the <code>mk_config_section</code> are
+linked together as a linked list, the <code>sections</code> field of <code>mk_config</code> serves as the
+sentinel node of the list and every <code>_head</code> field of <code>mk_config_section</code> is a
+list node. The relation between <code>entries</code> field of <code>mk_config_section</code> and <code>_head</code>
+field of <code>mk_config_entry</code> are likewise.</p>
+
+<p><code>mk_config_section_add</code>: add a <code>mk_config_section</code> to the section list of a
+specified <code>mk_config</code>. Used by <code>mk_config_create</code> to construct section list.</p>
+
+<p><code>mk_config_section_get</code>: given a section name, find the pointer to the corresponding
+<code>mk_config_section</code>.</p>
+
+<p><code>mk_config_entry_add</code>: add a <code>mk_config_entry</code> to the entry list of a specified
+<code>mk_config_section</code>. Used by <code>mk_config_create</code> to construct entry list.</p>
+
+<p><code>mk_config_section_getval</code>: given a <code>mk_config_section</code> and a key, find the entry
+matching the key under the section. If an entry is found, return its value field,
+otherwise return <code>NULL</code>. There are several types of entry value: string, number,
+boolean and list. We need to specify which type will the value be interpreted,
+and Monkey will parse the value string to correct type for us, the type codes is
+defined as follows(<code>mk_config.h</code>):</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">MK_CONFIG_VAL_STR</span> <span class="mi">0</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">MK_CONFIG_VAL_NUM</span> <span class="mi">1</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">MK_CONFIG_VAL_BOOL</span> <span class="mi">2</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">MK_CONFIG_VAL_LIST</span> <span class="mi">3</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Example Usage:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="n">port</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="n">mk_config_section_getval</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">Port</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="n">MK_CONFIG_VAL_NUM</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><code>mk_config_error</code>: raise configuration parsing error message and exit Monkey.</p>
+
+<p><code>mk_config_free</code>: free all the allocated resource for a specified <code>mk_config</code>.</p>
+
+<p><code>mk_config_free_entries</code>: free all the allocated resource for a specified
+<code>mk_config_section</code>.</p>
+
+<ul>
+<li><h3>Virtual Hosting Configuration</h3></li>
+</ul>
+
+
+<p>Monkey supports virtual hosting, which makes it possible for a single server to
+host separate host names and share resources among these hosts. For more detailed
+introduction please refer to Monkey&rsquo;s <a href="http://monkey-project.com/documentation/virtual_hosts">documentation</a>.</p>
+
+<p>Monkey requires every virtual host to have an independent host configuration file
+and all the entries are under a single section <code>[HOST]</code>. All the host configuration
+files are under <code>conf/sites/</code>, by default, there is only a file named <code>default</code>.
+Every host is represented as a <code>host</code> structure within Monkey(<code>mk_config.h</code>):</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">host</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">file</span><span class="p">;</span>                   <span class="cm">/* configuration file location*/</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">server_names</span><span class="p">;</span>  <span class="cm">/* host names (a b c...) */</span>
+</span><span class='line'><span class="n">mk_pointer</span> <span class="n">documentroot</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">host_signature</span><span class="p">;</span>
+</span><span class='line'><span class="n">mk_pointer</span> <span class="n">header_host_signature</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_config</span> <span class="o">*</span><span class="n">config</span><span class="p">;</span>     <span class="cm">/* source configuration */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">error_pages</span><span class="p">;</span>   <span class="cm">/* custom error pages */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>         <span class="cm">/* link node */</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><code>file</code> denotes the host file location of current <code>host</code>, <code>server_names</code> is a list
+of host names(every host name is a <code>host_alias</code>), <code>documentroot</code> is the document
+directory path that is treated by current <code>host</code> as root directory,
+<code>host_signature</code> stores the web server name of current <code>host</code>, <code>header_host_signature</code>
+is similar to <code>host_signature</code> except that it is formatted as a HTTP header field,
+<code>config</code> is undoubtedly the memory mapping of the host configuration file,
+<code>error_pages</code> is a list of pages to be displayed when certain HTTP error is
+encountered.</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Virtual</span> <span class="n">host</span> <span class="n">name</span> <span class="p">,</span> <span class="n">every</span> <span class="k">virtual</span> <span class="n">host</span> <span class="n">may</span> <span class="n">contain</span> <span class="n">one</span> <span class="n">or</span> <span class="n">more</span> <span class="n">of</span> <span class="n">this</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">host_alias</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">len</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Custom</span> <span class="n">error</span> <span class="n">page</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">error_page</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">short</span> <span class="kt">int</span> <span class="n">status</span><span class="p">;</span>       <span class="cm">/* HTTP error code */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">file</span><span class="p">;</span>             <span class="cm">/* file location relative to documentroot */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">real_path</span><span class="p">;</span>        <span class="cm">/* absolute location of file in the file system */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>All the host configuration information can be found in <code>config</code> field, and why
+do we need other fields? There are three reasons for doing so:</p>
+
+<ol>
+<li>some fields require further parsing, such as <code>server_names</code> is a list build
+from the plain text value of entry <code>Servername</code>.</li>
+<li>stores the entry value in a field can make code for retrieving entry value
+shorter.</li>
+<li>some fields can only be evaluated when Monkey is running.</li>
+</ol>
+
+
+<p>In Monkey we use <code>mk_config_get_host</code> to get a <code>host</code> from a host configuration
+file path.</p>
+
+<ul>
+<li><h3>Server Configuration</h3></li>
+</ul>
+
+
+<p>Once we gain the necessary knowledge, we can start our journey to Monkey&rsquo;s global
+server configuration. The main server configuration is defined in <code>mk_config.h</code>:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">extern</span> <span class="k">struct</span> <span class="n">server_config</span> <span class="o">*</span><span class="n">config</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>And the <code>server_config</code> structure is a bit larger than anyone we have encountered
+so far, thus it is not appropriate to display all the fields of <code>server_config</code>
+here and only those really matter will be listed(a reader clever like you can
+easily figure out what the rest fields mean by their names :D):</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">server_config</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">server_fd</span><span class="p">;</span>                <span class="cm">/* server socket file descriptor */</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">worker_capacity</span><span class="p">;</span> <span class="cm">/* how many clients per thread */</span>
+</span><span class='line'><span class="kt">short</span> <span class="kt">int</span> <span class="n">workers</span><span class="p">;</span>            <span class="cm">/* number of worker threads */</span>
+</span><span class='line'><span class="kt">int8_t</span> <span class="n">is_daemon</span><span class="p">;</span>             <span class="cm">/* start Monkey as a daemon process */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">serverconf</span><span class="p">;</span>             <span class="cm">/* path to server configuration files */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">listen_addr</span><span class="p">;</span>            <span class="cm">/* address to listen, 0.0.0.0(all) by default */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">pid_file_path</span><span class="p">;</span>          <span class="cm">/* pid of server */</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">pid_status</span><span class="p">;</span>               <span class="cm">/* whether pid file is created */</span>
+</span><span class='line'><span class="kt">int8_t</span> <span class="n">resume</span><span class="p">;</span>                <span class="cm">/* allow file range(partial contents)? */</span>
+</span><span class='line'><span class="kt">int8_t</span> <span class="n">symlink</span><span class="p">;</span>               <span class="cm">/* allow symbolic link requests? */</span>
+</span><span class='line'><span class="kt">int8_t</span> <span class="n">keep_alive</span><span class="p">;</span>            <span class="cm">/* allow persisten connection? */</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">max_keep_alive_request</span><span class="p">;</span>   <span class="cm">/* max persistent connections to allow */</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">keep_alive_timeout</span><span class="p">;</span>       <span class="cm">/* persistent connection timeout */</span>
+</span><span class='line'><span class="n">uid_t</span> <span class="n">euid</span><span class="p">;</span>                   <span class="cm">/* effective user id */</span>
+</span><span class='line'><span class="n">gid_t</span> <span class="n">egid</span><span class="p">;</span>                   <span class="cm">/* effective group id */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="o">*</span><span class="n">index_files</span><span class="p">;</span>  <span class="cm">/* different index file names */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">hosts</span><span class="p">;</span>         <span class="cm">/* list of virtuals hosts served by Monkey */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="o">*</span><span class="n">plugins</span><span class="p">;</span>      <span class="cm">/* plugins enabled by Monkey */</span>
+</span><span class='line'>                              <span class="cm">/* ...(some omitted fields) */</span>
+</span><span class='line'><span class="n">mode_t</span> <span class="n">open_flags</span><span class="p">;</span>            <span class="cm">/* flags used to open files that required by clients */</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">safe_event_write</span><span class="p">;</span>         <span class="cm">/* safe EPOLLOUT event */</span>
+</span><span class='line'><span class="cm">/* Transport type: HTTP or HTTPS, useful for redirections */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">transport</span><span class="p">;</span>
+</span><span class='line'><span class="cm">/* Define the plugin which provides the transport layer */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">transport_layer</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">plugin</span> <span class="o">*</span><span class="n">transport_layer_plugin</span><span class="p">;</span>
+</span><span class='line'><span class="cm">/* Define the default MIME type when it is not possible to find a proper one */</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">default_mimetype</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_config</span> <span class="o">*</span><span class="n">config</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Now let&rsquo;s take a closer look at how server configuration is built by Monkey:</p>
+
+<ul>
+<li><p>As we have seen in the <a href="#workflow"><em>Brief Workflow</em></a> section, Monkey enters server
+configuration building process via <code>mk_config_start_configure</code>. Before reading
+configuration file into memory, Monkey initializes some fields of <code>server_config</code>
+with default values(by calling <code>mk_config_set_init_values</code>).</p></li>
+<li><p>Monkey then uses <code>mk_config_read_files</code> to map the server configuration file
+into memory(<code>config</code> field of <code>server_config</code>). If an entry is defined in the
+file, its default value will be overrided:</p></li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">in</span> <span class="n">function</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">mk_config_set_init_values</span><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">config</span><span class="o">-&gt;</span><span class="n">keep_alive</span> <span class="o">=</span> <span class="n">MK_TRUE</span><span class="p">;</span>   <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="k">default</span> <span class="n">value</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">in</span> <span class="n">function</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">mk_config_read_files</span><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">overrided</span> <span class="n">by</span> <span class="n">configuration</span> <span class="n">file</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">config</span><span class="o">-&gt;</span><span class="n">keep_alive</span> <span class="o">=</span> <span class="p">(</span><span class="kt">size_t</span><span class="p">)</span> <span class="n">mk_config_section_getval</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">KeepAlive</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>                                                   <span class="n">MK_CONFIG_VAL_BOOL</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li><p>After the main configuration file is parsed, Monkey starts mapping all the
+virtual host configuration files into memory. This is achieved by calling
+<code>mk_config_read_hosts</code>, it will go through all the files under <code>conf/sites/</code>(except
+<code>.</code>, <code>..</code> and <code>default</code>, <code>default</code> has been read before any virtual hosts) and
+construct the corresponding <code>host</code>(<code>mk_config_get_host</code>). All the <code>host</code> are linked
+together as a list via the <code>hosts</code> field of <code>server_config</code>.</p></li>
+<li><p>Monkey reads the MIME types configuration file(<code>conf/monkey.mime</code>) and stores
+all the types in an array for later use. For more details of MIME types please
+refer to <a href="#http"><em>HTTP</em></a> section.</p></li>
+</ul>
+
+
+<p>Up to this point, the configuration building process of Monkey is finished.</p>
 
 <h2>Scheduler<a id='sched'></a></h2>
 
@@ -644,8 +1050,9 @@ details about how every entry affect Monkey&rsquo;s behaviour.</p>
 <ul>
 <li><h3>HTTP Header</h3></li>
 <li><h3>Header Cache</h3></li>
-<li><h3>Mimetype</h3></li>
+<li><h3>MIME Type</h3></li>
 <li><h3>HTTP Method</h3></li>
+<li><h3>Connection Management</h3></li>
 </ul>
 
 
