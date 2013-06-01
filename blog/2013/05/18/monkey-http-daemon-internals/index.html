@@ -1000,6 +1000,11 @@ refer to <a href="#http"><em>HTTP</em></a> section.</p></li>
 
 <h2>Scheduler<a id='sched'></a></h2>
 
+<p>Recall that Monkey spawns several HTTP workers for client requests processing,
+one thing we might concern about is how Monkey will schedule a new incoming
+connection. With this question in mind, let&rsquo;s dig into Monkey&rsquo;s scheduler strategy
+and implementation.</p>
+
 <h2>Clock<a id='clock'></a></h2>
 
 <h2>Hooks<a id='hooks'></a></h2>

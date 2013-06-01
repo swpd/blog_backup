@@ -4,7 +4,7 @@
   <title><![CDATA[swpd.me]]></title>
   <link href="http://swpd.github.io/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-05-28T23:25:34+08:00</updated>
+  <updated>2013-06-01T12:36:38+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,35 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC 2013 Accepted]]></title>
+    <link href="http://swpd.github.io/blog/2013/06/01/gsoc-2013-accepted/"/>
+    <updated>2013-06-01T10:03:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/06/01/gsoc-2013-accepted</id>
+    <content type="html"><![CDATA[<p><img src="http://swpd.github.io/images/blog/gsoc2013.jpg" title="Google Summer of Code 2013" alt="Google Summer of Code 2013"></p>
+
+<p>It is such a wonderful moment when I recieved a welcome letter from Carol Smith:
+I was accepted by GSoC 2013 under <a href="http://monkey-project.com">Monkey HTTP Daemon</a> project!
+Use the code, Luke! This summer is going to be awesome and unforgettable!</p>
+
+<p>During the summer I will be working on Duda I/O packages which will provide
+support for relational databases (MariaDB/Postgresql). All the stuffs related to
+my project will be posted on this blog to keep the community informed.</p>
+
+<p>At last I want to share some tips that might help to get your proposals accepted:</p>
+
+<ol>
+<li>choose those that suit your interest and start as early as possible.</li>
+<li>keep in touch with the community (via IRC, mailing list, etc.).</li>
+<li>get familiar with the community workflow.</li>
+<li>submit some patches to your applying projects.</li>
+<li>discuss your ideas and request some feedback.</li>
+<li>write a detailed proposal about your ideas.</li>
+</ol>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Monkey HTTP Daemon Internals]]></title>
@@ -932,6 +961,11 @@ refer to <a href="#http"><em>HTTP</em></a> section.</p></li>
 <p>Up to this point, the configuration building process of Monkey is finished.</p>
 
 <h2>Scheduler<a id='sched'></a></h2>
+
+<p>Recall that Monkey spawns several HTTP workers for client requests processing,
+one thing we might concern about is how Monkey will schedule a new incoming
+connection. With this question in mind, let&rsquo;s dig into Monkey&rsquo;s scheduler strategy
+and implementation.</p>
 
 <h2>Clock<a id='clock'></a></h2>
 

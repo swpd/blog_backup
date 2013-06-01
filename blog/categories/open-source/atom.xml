@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Open Source | swpd.me]]></title>
+  <link href="http://swpd.github.io/blog/categories/open-source/atom.xml" rel="self"/>
+  <link href="http://swpd.github.io/"/>
+  <updated>2013-06-01T12:36:38+08:00</updated>
+  <id>http://swpd.github.io/</id>
+  <author>
+    <name><![CDATA[swpd]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC 2013 Accepted]]></title>
+    <link href="http://swpd.github.io/blog/2013/06/01/gsoc-2013-accepted/"/>
+    <updated>2013-06-01T10:03:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/06/01/gsoc-2013-accepted</id>
+    <content type="html"><![CDATA[<p><img src="/images/blog/gsoc2013.jpg" title="&lsquo;Google Summer of Code 2013&rsquo; &lsquo;Google Summer of Code 2013&rsquo;" ></p>
+
+<p>It is such a wonderful moment when I recieved a welcome letter from Carol Smith:
+I was accepted by GSoC 2013 under <a href="http://monkey-project.com">Monkey HTTP Daemon</a> project!
+Use the code, Luke! This summer is going to be awesome and unforgettable!</p>
+
+<p>During the summer I will be working on Duda I/O packages which will provide
+support for relational databases (MariaDB/Postgresql). All the stuffs related to
+my project will be posted on this blog to keep the community informed.</p>
+
+<p>At last I want to share some tips that might help to get your proposals accepted:</p>
+
+<ol>
+<li>choose those that suit your interest and start as early as possible.</li>
+<li>keep in touch with the community (via IRC, mailing list, etc.).</li>
+<li>get familiar with the community workflow.</li>
+<li>submit some patches to your applying projects.</li>
+<li>discuss your ideas and request some feedback.</li>
+<li>write a detailed proposal about your ideas.</li>
+</ol>
+
+]]></content>
+  </entry>
+  
+</feed>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Web Server | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/web-server/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-05-28T23:25:34+08:00</updated>
+  <updated>2013-06-01T12:36:38+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -1040,6 +1040,11 @@ refer to <a href="#http"><em>HTTP</em></a> section.</p></li>
 <p>Up to this point, the configuration building process of Monkey is finished.</p>
 
 <h2>Scheduler<a id='sched'></a></h2>
+
+<p>Recall that Monkey spawns several HTTP workers for client requests processing,
+one thing we might concern about is how Monkey will schedule a new incoming
+connection. With this question in mind, let&rsquo;s dig into Monkey&rsquo;s scheduler strategy
+and implementation.</p>
 
 <h2>Clock<a id='clock'></a></h2>
 
