@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Monkey | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/monkey/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-06-01T12:36:38+08:00</updated>
+  <updated>2013-06-24T20:45:17+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,37 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 1]]></title>
+    <link href="http://swpd.github.io/blog/2013/06/24/gsoc-status-week-1/"/>
+    <updated>2013-06-24T11:36:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/06/24/gsoc-status-week-1</id>
+    <content type="html"><![CDATA[<p><img src="/images/blog/music_monkey.jpg">
+During the first week of GSoC I was investigating the APIs of MariaDB to get myself
+familiar with its usages. I had done several experiments with a simple MariaDB
+client program which includes connecting database, running queries, fetching results
+and preparing SQL statements.</p>
+
+<p>After getting a basic understanding of the MariaDB client library, I moved on to
+the asynchronous APIs. There&rsquo;s a <a href="https://kb.askmonty.org/en/using-the-non-blocking-library/">post</a>
+explaining how to use non-blocking interfaces with a trivial example. The non-blocking
+APIs are modelled after the normal blocking ones, for example the non-blocking
+version of <code>mysql_real_query</code> is a couple of functions named <code>mysql_real_query_start</code>
+and <code>mysql_real_query_cont</code>.</p>
+
+<p>Besides the official introduction of non-blocking APIs, there&rsquo;s a Node.js package
+<code>mariasql</code> that makes use of the non-blocking APIs and serves as a complete reference
+of writing a MariaDB driver. I am studying the source code of <code>mariasql</code> and the
+<code>redis</code> package of Monkey to see how I can integrate it with the Monkey&rsquo;s event
+loop.</p>
+
+<p>For the next week I will focus on designing the basic structures and functions for
+Monkey MariaDB package. And the unfinished <a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">blog entry</a>
+discussing about Monkey intervals will continue to be updated from next week
+(got a lot of stuffs related to graduation recently).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC 2013 Accepted]]></title>
@@ -1075,6 +1106,40 @@ one thing we might concern about is how Monkey will schedule a new incoming
 connection. With this question in mind, let&rsquo;s dig into Monkey&rsquo;s scheduler strategy
 and implementation.</p>
 
+<p>Within Monkey the scheduling unit is abstracted as structure <code>sched_connection</code>
+(defined in <code>mk_scheduler.h</code>).</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">sched_connection</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">socket</span><span class="p">;</span>              <span class="cm">/* file descriptor of remote socket */</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">status</span><span class="p">;</span>              <span class="cm">/* connection status */</span>
+</span><span class='line'><span class="kt">uint32_t</span> <span class="n">events</span><span class="p">;</span>         <span class="cm">/* epoll events that Monkey is intereted about */</span>
+</span><span class='line'><span class="kt">time_t</span> <span class="n">arrive_time</span><span class="p">;</span>      <span class="cm">/* arrived time(when a connection is established) */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">rb_node</span> <span class="n">_rb_head</span><span class="p">;</span> <span class="cm">/* red-black tree head(for quick accessing) */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>    <span class="cm">/* list head */</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li><h3>Epoll</h3></li>
+</ul>
+
+
 <h2>Clock<a id='clock'></a></h2>
 
 <h2>Hooks<a id='hooks'></a></h2>
@@ -1178,6 +1243,24 @@ and implementation.</p>
 </span><span class='line'>|-- mk_user.c            [code for uid/pid convertion]
 </span><span class='line'>|-- mk_utils.c           [contains some handy helper]
 </span><span class='line'>&lt;/code>&mdash; monkey.c             [main entry point of Monkey]</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Useful utilities for analysing:</li>
+</ul>
+
+
+<p>Here are some tools I found very helpful while analysing source code, this is for
+your reference only. (If you use other cool tools, please let me know):</p>
+
+<p>curl</p>
+
+<p>ncat</p>
+
+<p>lsof</p>
+
+<p>tcpdump</p>
+
+<p>top</p>
 ]]></content>
   </entry>
   

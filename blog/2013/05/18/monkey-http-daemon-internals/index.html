@@ -1005,6 +1005,35 @@ one thing we might concern about is how Monkey will schedule a new incoming
 connection. With this question in mind, let&rsquo;s dig into Monkey&rsquo;s scheduler strategy
 and implementation.</p>
 
+<p>Within Monkey the scheduling unit is abstracted as structure <code>sched_connection</code>
+(defined in <code>mk_scheduler.h</code>).</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">sched_connection</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">socket</span><span class="p">;</span>              <span class="cm">/* file descriptor of remote socket */</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">status</span><span class="p">;</span>              <span class="cm">/* connection status */</span>
+</span><span class='line'>    <span class="kt">uint32_t</span> <span class="n">events</span><span class="p">;</span>         <span class="cm">/* epoll events that Monkey is intereted about */</span>
+</span><span class='line'>    <span class="kt">time_t</span> <span class="n">arrive_time</span><span class="p">;</span>      <span class="cm">/* arrived time(when a connection is established) */</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">rb_node</span> <span class="n">_rb_head</span><span class="p">;</span> <span class="cm">/* red-black tree head(for quick accessing) */</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>    <span class="cm">/* list head */</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li><h3>Epoll</h3></li>
+</ul>
+
+
 <h2>Clock<a id='clock'></a></h2>
 
 <h2>Hooks<a id='hooks'></a></h2>
@@ -1110,7 +1139,23 @@ and implementation.</p>
 </span><span class='line'>`-- monkey.c             [main entry point of Monkey]</span></code></pre></td></tr></table></div></figure>
 
 
+<ul>
+<li>Useful utilities for analysing:</li>
+</ul>
 
+
+<p>Here are some tools I found very helpful while analysing source code, this is for
+your reference only. (If you use other cool tools, please let me know):</p>
+
+<p>curl</p>
+
+<p>ncat</p>
+
+<p>lsof</p>
+
+<p>tcpdump</p>
+
+<p>top</p>
 </div>
 
 

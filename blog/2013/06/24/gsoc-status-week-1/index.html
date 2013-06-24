@@ -3,11 +3,12 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Category: GSoC - swpd.me</title>
+	<title>GSoC Status: Week 1 - swpd.me</title>
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="Category: GSoC">
+	<meta name="description" content="During the first week of GSoC I was investigating the APIs of MariaDB to get myself
+familiar with its usages. I had done several experiments with a &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -75,47 +76,75 @@
 	
 		
 	
-	<div id="content" class="inner">
-	
+	<div id="content" class="inner"><article class="post">
+	<h2 class="title">GSoC Status: Week 1</h2>
+	<div class="entry-content"><p><img src="/images/blog/music_monkey.jpg">
+During the first week of GSoC I was investigating the APIs of MariaDB to get myself
+familiar with its usages. I had done several experiments with a simple MariaDB
+client program which includes connecting database, running queries, fetching results
+and preparing SQL statements.</p>
+
+<p>After getting a basic understanding of the MariaDB client library, I moved on to
+the asynchronous APIs. There&rsquo;s a <a href="https://kb.askmonty.org/en/using-the-non-blocking-library/">post</a>
+explaining how to use non-blocking interfaces with a trivial example. The non-blocking
+APIs are modelled after the normal blocking ones, for example the non-blocking
+version of <code>mysql_real_query</code> is a couple of functions named <code>mysql_real_query_start</code>
+and <code>mysql_real_query_cont</code>.</p>
+
+<p>Besides the official introduction of non-blocking APIs, there&rsquo;s a Node.js package
+<code>mariasql</code> that makes use of the non-blocking APIs and serves as a complete reference
+of writing a MariaDB driver. I am studying the source code of <code>mariasql</code> and the
+<code>redis</code> package of Monkey to see how I can integrate it with the Monkey&rsquo;s event
+loop.</p>
+
+<p>For the next week I will focus on designing the basic structures and functions for
+Monkey MariaDB package. And the unfinished <a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">blog entry</a>
+discussing about Monkey intervals will continue to be updated from next week
+(got a lot of stuffs related to graduation recently).</p>
+</div>
 
 
-	
-	
-	<section class="archives"><h1 class="year">2013</h1>
+<div class="meta">
+	<div class="date">
 
-<article>
-	<h2 class="title"><a href="/blog/2013/06/24/gsoc-status-week-1/">GSoC Status: Week 1</a></h2>
-	<div class="meta">
-		<div class="date">Jun 24</div>
-		<div class="tags">
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-24T11:36:00+08:00" pubdate data-updated="true">Jun 24<span>th</span>, 2013</time></div>
+	<div class="tags">
 
 
 	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
 
 
 </div>
-	    
-	</div>
-</article>
-
 	
+</div></article>
 
-
-<article>
-	<h2 class="title"><a href="/blog/2013/06/01/gsoc-2013-accepted/">GSoC 2013 Accepted</a></h2>
-	<div class="meta">
-		<div class="date">Jun  1</div>
-		<div class="tags">
-
-
-	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/open-source/'>Open Source</a>
-
-
-</div>
-	    
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	
+	<a class="addthis_counter addthis_pill_style"></a>
 	</div>
-</article>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
 
+
+
+<section id="comment">
+    <h2 class="title">Comments</h2>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</section>
 </div>
 	<footer id="footer" class="inner"><div>
     <a href="http://www.vim.org/">
@@ -143,7 +172,10 @@ Copyright &copy; 2013
       var disqus_shortname = 'swpdtz';
       
         
-        var disqus_script = 'count.js';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://swpd.github.io/blog/2013/06/24/gsoc-status-week-1/';
+        var disqus_url = 'http://swpd.github.io/blog/2013/06/24/gsoc-status-week-1/';
+        var disqus_script = 'embed.js';
       
     (function () {
       var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
