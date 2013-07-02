@@ -3,11 +3,12 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Category: Weekly Status - swpd.me</title>
+	<title>GSoC Status: Week 2 - swpd.me</title>
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="Category: Weekly Status">
+	<meta name="description" content="This week I came out with the API draft for Duda MariaDB package, it has been
+pushed to Github but is still under development and may be altered &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -75,47 +76,75 @@
 	
 		
 	
-	<div id="content" class="inner">
-	
+	<div id="content" class="inner"><article class="post">
+	<h2 class="title">GSoC Status: Week 2</h2>
+	<div class="entry-content"><p><img src="/images/blog/jump_monkey.jpg">
+This week I came out with the API draft for Duda MariaDB package, it has been
+pushed to Github but is still under development and may be altered later. For your
+interest, you can refer to the repository and leave me some comments:
+<a href="https://github.com/swpd/duda_mariadb">Duda MariaDB package</a>.</p>
+
+<p>Roughly speaking, the APIs were influenced by the <code>mariasql</code> Node.js package and
+the asynchronous access code of <code>redis</code>. Currently there are three header files,
+<code>mariadb.h</code> contains event handling functions declaration for MariaDB connection
+sockets and some global definitions; <code>connection.h</code> contains code related to
+MariaDB client connections, it is responsible for connection management; <code>query.h</code>
+takes care of stuffs related to a MariaDB query, every connection can have several
+queries, the queries arer linked as a list and will be executed one by one.</p>
+
+<p><a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">Monkey Internals</a>
+was updated this week (composed part of the scheduler section; the command line
+utility section was finished), the remaining sections are still under writing.</p>
+
+<p>This week I also moved to my new apartment, everything got settled down and it
+is a nice place :D.</p>
+
+<p>For the next week, I will be implementing the APIs and try to put the package into
+working.</p>
+</div>
 
 
-	
-	
-	<section class="archives"><h1 class="year">2013</h1>
+<div class="meta">
+	<div class="date">
 
-<article>
-	<h2 class="title"><a href="/blog/2013/06/30/gsoc-status-week-2/">GSoC Status: Week 2</a></h2>
-	<div class="meta">
-		<div class="date">Jun 30</div>
-		<div class="tags">
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-30T23:54:00+08:00" pubdate data-updated="true">Jun 30<span>th</span>, 2013</time></div>
+	<div class="tags">
 
 
 	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
 
 
 </div>
-	    
-	</div>
-</article>
-
 	
+</div></article>
 
-
-<article>
-	<h2 class="title"><a href="/blog/2013/06/24/gsoc-status-week-1/">GSoC Status: Week 1</a></h2>
-	<div class="meta">
-		<div class="date">Jun 24</div>
-		<div class="tags">
-
-
-	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
-
-
-</div>
-	    
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	
+	<a class="addthis_counter addthis_pill_style"></a>
 	</div>
-</article>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
 
+
+
+<section id="comment">
+    <h2 class="title">Comments</h2>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</section>
 </div>
 	<footer id="footer" class="inner"><div>
     <a href="http://www.vim.org/">
@@ -143,7 +172,10 @@ Copyright &copy; 2013
       var disqus_shortname = 'swpdtz';
       
         
-        var disqus_script = 'count.js';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://swpd.github.io/blog/2013/06/30/gsoc-status-week-2/';
+        var disqus_url = 'http://swpd.github.io/blog/2013/06/30/gsoc-status-week-2/';
+        var disqus_script = 'embed.js';
       
     (function () {
       var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;

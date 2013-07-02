@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Source Code | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/source-code/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-06-24T20:45:17+08:00</updated>
+  <updated>2013-07-02T17:04:34+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -1075,6 +1075,161 @@ and implementation.</p>
 </span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
+<p>When a client issues a new connection to the Monkey server, a new <code>sched_connection</code>
+is allocated. Then Monkey will schedule this connection based on a simple load
+balance strategy: find the HTTP worker that holds the least active connections
+and dispatch the new connection to it. Although this is a trivial strategy, it
+works fine because mostly HTTP request processing and response generating won&rsquo;t
+take a long time. But if there is an HTTP request requires enormous amount of
+computation, other requests handled by the same worker will wait for a long time
+while other workers may be idle.</p>
+
+<p>In order to schedule connections, Monkey needs to keep track of some extra information
+of every HTTP worker. For every HTTP worker, there is a associated <code>sched_list_node</code>
+(defined in <code>mk_scheduler.h</code>) structure for the sake of maintaining such information:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">sched_list_node</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span> <span class="n">accepted_connections</span><span class="p">;</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span> <span class="n">closed_connections</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm"> * Red-Black tree queue to perform fast lookup over</span>
+</span><span class='line'><span class="cm"> * the scheduler busy queue</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">rb_root</span> <span class="n">rb_queue</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* Available and busy queue */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">busy_queue</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">av_queue</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">short</span> <span class="kt">int</span> <span class="n">idx</span><span class="p">;</span> <span class="cm">/* worker index */</span>
+</span><span class='line'><span class="n">pthread_t</span> <span class="n">tid</span><span class="p">;</span> <span class="cm">/* worker thread id */</span>
+</span><span class='line'><span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>     <span class="cm">/* worker process id, thread is just light weight process in Linux */</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">epoll_fd</span><span class="p">;</span>  <span class="cm">/* epoll instance for monitoring file descriptors */</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">initialized</span><span class="p">;</span> <span class="cm">/* whether this worker has been initialized */</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><code>accepted_connections</code> records the total number of connections accepted and
+hanlded by the corresponding worker, and <code>closed_connections</code> records the total
+number of connections closed by the corresponding worker. With these two numbers
+the active connections of a worker is given by the difference of them:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">the</span> <span class="n">active</span> <span class="n">connection</span> <span class="n">number</span> <span class="n">will</span> <span class="n">never</span> <span class="n">be</span> <span class="n">negative</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span> <span class="n">active_connections</span> <span class="o">=</span> <span class="n">accepted_connections</span> <span class="o">&amp;</span><span class="n">ndash</span><span class="p">;</span> <span class="n">closed_connections</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><code>rb_queue</code> refers to the root of a red-black tree that maintains all the active
+connections of the corresponding worker according to their file descriptors. The
+<code>_rb_head</code> field of active <code>sched_connection</code> serve as tree nodes and are linked
+together as a red-black tree.</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">int</span> <span class="nf">_next_target</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">target</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span> <span class="n">tmp</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* calculate the active connections of worker */</span>
+</span><span class='line'><span class="n">cur</span> <span class="o">=</span> <span class="n">sched_list</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">accepted_connections</span> <span class="o">-</span> <span class="n">sched_list</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">closed_connections</span><span class="p">;</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">cur</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* Finds the worker with lowest load */</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">workers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">tmp</span> <span class="o">=</span> <span class="n">sched_list</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">accepted_connections</span> <span class="o">-</span> <span class="n">sched_list</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">closed_connections</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">tmp</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">cur</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">target</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">cur</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">cur</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span><span class='line'>            <span class="k">break</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm"> * If sched_list[target] worker is full then the whole server too, because</span>
+</span><span class='line'><span class="cm"> * it has the lowest load.</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">mk_unlikely</span><span class="p">(</span><span class="n">cur</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">worker_capacity</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">MK_TRACE</span><span class="p">(</span><span class="s">&quot;Too many clients: %i&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">worker_capacity</span> <span class="o">*</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">workers</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">return</span> <span class="n">target</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
 <ul>
 <li><h3>Epoll</h3></li>
 </ul>
@@ -1190,17 +1345,122 @@ and implementation.</p>
 
 
 <p>Here are some tools I found very helpful while analysing source code, this is for
-your reference only. (If you use other cool tools, please let me know):</p>
+your reference only and please consult man pages for full infomatioin. (If you
+use other cool tools, please let me know):</p>
 
-<p>curl</p>
+<h3><a href="http://en.wikipedia.org/wiki/CURL">curl</a></h3>
 
-<p>ncat</p>
+<p><code>curl</code> is a command line tool for transferring data with URL syntax using various
+protocols. As with Monkey, I use <code>curl</code> as an HTTP client to communicate with the
+Monkey server.</p>
 
-<p>lsof</p>
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>/&lt;em> retrieve the main page from Monkey server &lt;/em>/
+</span><span class='line'>curl localhost:2001
+</span><span class='line'>/&lt;em> same as above but with verbose information &lt;/em>/
+</span><span class='line'>curl -v localhost:2001</span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
-<p>tcpdump</p>
+<p>With this command I can fire a HTTP request without opening my Firefox/Chromium,
+it is also much light weight than a comprehensive browser.</p>
 
-<p>top</p>
+<h3><a href="http://en.wikipedia.org/wiki/Netcat">netcat</a></h3>
+
+<p><code>netcat</code> is a computer networking service for reading from and writing to network
+connections using TCP or UDP. It is often referred as the swiss army knife for
+TCP/IP.</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>/&lt;em> test timeout &lt;/em>/
+</span><span class='line'>date; netcat -C 127.0.0.1 2001; date
+</span><span class='line'>/&lt;em> manually send an HTTP request &lt;/em>/
+</span><span class='line'>netcat -C 127.0.0.1 2001
+</span><span class='line'>GET / HTTP/1.1
+</span><span class='line'>Host: localhost:2001&lt;/p>
+</span><span class='line'>
+</span><span class='line'>&lt;p></span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Note: option <code>-C</code> make <code>netcat</code> to use CRLF for EOL sequence, the last blank line
+of HTTP request header is required since that means the end of the request.</p>
+
+<p>With this command I can explore a request to Monkey in a lower level than <code>curl</code>,
+it helps to understand the TCP connection of Monkey.</p>
+
+<h3><a href="http://en.wikipedia.org/wiki/Lsof">lsof</a></h3>
+
+<p><code>lsof</code> stands for list open files. As we know, one of the most important abstraction
+of Linux is files: regular file, pipe, fifo, device, etc. For this reason, <code>lsof</code>
+becomes a very neat and invaluable tools, it&rsquo;s the swiss army knife for examining
+open files.</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>/&lt;em> list all the files open by Monkey &lt;/em>/
+</span><span class='line'>lsof -c monkey</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>With this command I can be informed which plugins(saved as dynamic library) are
+loaded by Monkey and where they reside in the file system, how many pipes are
+opened for logging, which socket is used for waiting new incoming connections,
+etc.</p>
+
+<h3><a href="http://en.wikipedia.org/wiki/Tcpdump">tcpdump</a></h3>
+
+<p><code>tcpdump</code> is a common packet analyzer that allows the user to intercept and display
+TCP/IP and other packets being transmitted or received over a network to which
+the computer is attached.</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>/&lt;em> for our interest, we want to capture packets related to Monkey &lt;/em>/
+</span><span class='line'>sudo tcpdump -i lo port 2001</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>With this command I can figure out how every single byte is exchange between Monkey
+server and the client.</p>
+
+<p>Note: I am testing Monkey in local mode and thus the interface option is specified
+as <code>lo</code>, you should change it to the appropriate interface(<code>eth0</code>, etc.) if the
+client and server aren&rsquo;t in the same computer.</p>
+
+<h3><a href="http://en.wikipedia.org/wiki/Htop">htop</a></h3>
+
+<p><code>htop</code> is an interactive system-monitor process-viewer that aims to replace <code>top</code>.
+Once you are used to <code>htop</code>, you will never want to go back to <code>top</code>.</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>htop</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Within <code>htop</code>, press <code>F4</code> then enter keyword <code>monkey</code> to filt out threads that
+belong to Monkey. On my Linux box, the cunstom thread names are not displayed
+by default. If this is the same case for you, you can change this behaviour by
+the following steps:</p>
+
+<ul>
+<li>press <code>F2</code> to enter the setup panel of <code>htop</code></li>
+<li>navigate to <code>Display options</code> section</li>
+<li>toggle options <code>Show custom thread names</code> on</li>
+<li>press <code>F10</code> and you are done</li>
+</ul>
+
+
+<p>With this command I can explore the internal structure of Monkey, check out how
+many resources are consumed by Monkey, send signals to Monkey:</p>
+
+<ul>
+<li>press <code>l</code> to display output of <code>lsof</code> within <code>htop</code></li>
+<li>press <code>s</code> to display output of <code>strace</code> within <code>htop</code></li>
+<li>press <code>F5</code> or <code>t</code> to display the process and thread hierarchy of Monkey</li>
+<li>press <code>F6</code> or <code>&gt;</code> to sort by time, CPU usage, etc.</li>
+</ul>
+
 ]]></content>
   </entry>
   
