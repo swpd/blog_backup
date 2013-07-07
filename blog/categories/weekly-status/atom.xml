@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Weekly Status | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/weekly-status/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-07T13:13:34+08:00</updated>
+  <updated>2013-07-08T00:17:28+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -18,7 +18,27 @@
     <link href="http://swpd.github.io/blog/2013/07/06/gsoc-status-week-3/"/>
     <updated>2013-07-06T11:21:00+08:00</updated>
     <id>http://swpd.github.io/blog/2013/07/06/gsoc-status-week-3</id>
-    <content type="html"><![CDATA[<p><img src="/images/blog/running_monkey.jpg"></p>
+    <content type="html"><![CDATA[<p><img src="/images/blog/running_monkey.jpg">
+This week I spent most of my time implementing the MariaDB package, it is still
+incomplete but I&rsquo;ve pushed it to Github, check <a href="https://github.com/swpd/duda_mariadb">it</a>
+out if you are interested.</p>
+
+<p>The problem I am currently stuck is for every continue part of the asynchronous
+version MariaDB APIs, we need to pass the <code>ready_status</code>(bitmask of all events
+occurred on a MariaDB connection socket) in able to issue the call. However,
+the socket event callback functions are spilt into five sepreated functions,
+and every function only knows the corresponding event it shall handle but no idea
+about all the events available on the MariaDB socket. This makes it more tricky
+to write the callback functions right, I need to make sure what events actually
+occurs on every stage of a MariaDB&rsquo;s connection lifecycle.</p>
+
+<p>Meanwhile, I am also discussing with Eduardo Silva to see what we can do with it.
+He did offer me some useful advinces and will show me some examples later. And
+as he recommended, we may add connection pool support to our MariaDB package to
+avoid connect-on-demand mechanism.</p>
+
+<p>For the next week, I will keep hard working on making the implementation complete
+and integrate it with Duda.</p>
 
 <!-- more -->
 

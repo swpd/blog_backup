@@ -7,7 +7,9 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content=" Read on &rarr; Jul 6th, 2013 GSoC, Monkey, Weekly Status ">
+	<meta name="description" content="This week I spent most of my time implementing the MariaDB package, it is still
+incomplete but I&rsquo;ve pushed it to Github, check it
+out if you &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -86,7 +88,27 @@
 			GSoC Status: Week 3</a>
 	</h2>
 	<div class="entry-content">
-		<p><img src="/images/blog/running_monkey.jpg"></p>
+		<p><img src="/images/blog/running_monkey.jpg">
+This week I spent most of my time implementing the MariaDB package, it is still
+incomplete but I&rsquo;ve pushed it to Github, check <a href="https://github.com/swpd/duda_mariadb">it</a>
+out if you are interested.</p>
+
+<p>The problem I am currently stuck is for every continue part of the asynchronous
+version MariaDB APIs, we need to pass the <code>ready_status</code>(bitmask of all events
+occurred on a MariaDB connection socket) in able to issue the call. However,
+the socket event callback functions are spilt into five sepreated functions,
+and every function only knows the corresponding event it shall handle but no idea
+about all the events available on the MariaDB socket. This makes it more tricky
+to write the callback functions right, I need to make sure what events actually
+occurs on every stage of a MariaDB&rsquo;s connection lifecycle.</p>
+
+<p>Meanwhile, I am also discussing with Eduardo Silva to see what we can do with it.
+He did offer me some useful advinces and will show me some examples later. And
+as he recommended, we may add connection pool support to our MariaDB package to
+avoid connect-on-demand mechanism.</p>
+
+<p>For the next week, I will keep hard working on making the implementation complete
+and integrate it with Duda.</p>
 
 
 		
@@ -275,8 +297,9 @@ my project will be posted on this blog to keep the community informed.</p>
 </ol>
 
 
+
 		
-		
+		<a href="/blog/2013/06/01/gsoc-2013-accepted/" class="more-link">Read on &rarr;</a>
 	</div>
 
 
