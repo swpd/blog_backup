@@ -2,7 +2,7 @@
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
         <loc>http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/</loc>
-        <lastmod>2013-07-02T16:18:06+08:00</lastmod>
+        <lastmod>2013-07-07T13:12:06+08:00</lastmod>
     </url>
     <url>
         <loc>http://swpd.github.io/blog/2013/06/01/gsoc-2013-accepted/</loc>
@@ -10,11 +10,15 @@
     </url>
     <url>
         <loc>http://swpd.github.io/blog/2013/06/24/gsoc-status-week-1/</loc>
-        <lastmod>2013-06-24T20:42:16+08:00</lastmod>
+        <lastmod>2013-07-07T13:13:12+08:00</lastmod>
     </url>
     <url>
         <loc>http://swpd.github.io/blog/2013/06/30/gsoc-status-week-2/</loc>
-        <lastmod>2013-07-02T17:03:53+08:00</lastmod>
+        <lastmod>2013-07-07T13:13:21+08:00</lastmod>
+    </url>
+    <url>
+        <loc>http://swpd.github.io/blog/2013/07/06/gsoc-status-week-3/</loc>
+        <lastmod>2013-07-07T13:13:34+08:00</lastmod>
     </url>
     <url>
         <loc>http://swpd.github.io/robots.txt</loc>
@@ -22,10 +26,10 @@
     </url>
     <url>
         <loc>http://swpd.github.io/blog/archives/</loc>
-        <lastmod>2013-07-02T17:03:53+08:00</lastmod>
+        <lastmod>2013-07-07T13:13:34+08:00</lastmod>
     </url>
     <url>
         <loc>http://swpd.github.io/</loc>
-        <lastmod>2013-07-02T17:03:53+08:00</lastmod>
+        <lastmod>2013-07-07T13:13:34+08:00</lastmod>
     </url>
 </urlset>

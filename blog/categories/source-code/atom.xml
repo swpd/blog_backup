@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Source Code | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/source-code/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-02T17:04:34+08:00</updated>
+  <updated>2013-07-07T13:13:34+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -57,6 +57,9 @@ general view of Monkey.</p>
 (check out <a href="http://monkey-project.com">home page</a> for more information). If you
 are using an older version, there might be something different, e.g. red-black
 tree is introduced since version 1.2.0.</p>
+
+<!-- more -->
+
 
 <h2>Basic Data Structures<a id='data'></a></h2>
 

@@ -4,7 +4,7 @@
   <title><![CDATA[swpd.me]]></title>
   <link href="http://swpd.github.io/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-02T17:04:34+08:00</updated>
+  <updated>2013-07-07T13:13:34+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,18 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 3]]></title>
+    <link href="http://swpd.github.io/blog/2013/07/06/gsoc-status-week-3/"/>
+    <updated>2013-07-06T11:21:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/07/06/gsoc-status-week-3</id>
+    <content type="html"><![CDATA[<p><img src="http://swpd.github.io/images/blog/running_monkey.jpg"></p>
+
+<!-- more -->
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 2]]></title>
@@ -41,6 +53,9 @@ is a nice place :D.</p>
 
 <p>For the next week, I will be implementing the APIs and try to put the package into
 working.</p>
+
+<!-- more -->
+
 ]]></content>
   </entry>
   
@@ -72,6 +87,9 @@ loop.</p>
 Monkey MariaDB package. And the unfinished <a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">blog entry</a>
 discussing about Monkey intervals will continue to be updated from next week
 (got a lot of stuffs related to graduation recently).</p>
+
+<!-- more -->
+
 ]]></content>
   </entry>
   
@@ -148,6 +166,9 @@ general view of Monkey.</p>
 (check out <a href="http://monkey-project.com">home page</a> for more information). If you
 are using an older version, there might be something different, e.g. red-black
 tree is introduced since version 1.2.0.</p>
+
+<!-- more -->
+
 
 <h2>Basic Data Structures<a id='data'></a></h2>
 
