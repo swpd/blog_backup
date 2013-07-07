@@ -1,0 +1,26 @@
+---
+layout: post
+title: "GSoC 2013 Accepted"
+date: 2013-06-01 10:03
+comments: true
+categories: [GSoC, Monkey, Open Source]
+---
+
+{% img /images/blog/gsoc2013.jpg 'Google Summer of Code 2013' 'Google Summer of Code 2013' %}
+
+It is such a wonderful moment when I recieved a welcome letter from Carol Smith:
+I was accepted by GSoC 2013 under [Monkey HTTP Daemon](http://monkey-project.com) project!
+Use the code, Luke! This summer is going to be awesome and unforgettable!
+
+During the summer I will be working on Duda I/O packages which will provide
+support for relational databases (MariaDB/Postgresql). All the stuffs related to
+my project will be posted on this blog to keep the community informed.
+
+At last I want to share some tips that might help to get your proposals accepted:
+
+1. choose those that suit your interest and start as early as possible.
+2. keep in touch with the community (via IRC, mailing list, etc.).
+3. get familiar with the community workflow.
+4. submit some patches to your applying projects.
+5. discuss your ideas and request some feedback.
+6. write a detailed proposal about your ideas.

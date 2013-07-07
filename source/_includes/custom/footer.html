@@ -1,0 +1,14 @@
+<div>
+    <a href="http://www.vim.org/">
+        {% img /images/vim_powered.gif 'Powered by Vim' 'Powered by Vim' %}
+    </a>
+    <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US">
+        {% img /images/cc.png 'Creative Commons' 'Creative Commons' %}
+    </a>
+</div>
+Copyright &copy; {{ site.time | date: "%Y" }}
+{% if site.author %}
+    {{ site.author }}
+{% else %}
+    {{ site.title }}
+{% endif %}
