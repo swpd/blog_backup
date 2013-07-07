@@ -24,3 +24,4 @@ At last I want to share some tips that might help to get your proposals accepted
 4. submit some patches to your applying projects.
 5. discuss your ideas and request some feedback.
 6. write a detailed proposal about your ideas.
+<!-- more -->
