@@ -16,6 +16,12 @@ some APIs may be altered in the future and new features will be introduced into
 it. You can retrieve the code [here](https://github.com/swpd/duda_mariadb) for
 your own interest. :-D
 
+During this week I also discussed some questions I was not sure about with the
+guy who implemented the asynchronous APIs for MariaDB(known as knielsen on #maria).
+He was nice and answered all my questions in detail. And my mentor, edsiper, who
+was busy lately, gave me some advices on how to deal with the duda apis. I wanna
+thanks both of them here!
+
 Here are some tasks I will be working on for the next week:
 
 * write documentation to explain the design and usage of the MariaDB package.
