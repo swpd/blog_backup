@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Weekly Status | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/weekly-status/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-08T00:17:28+08:00</updated>
+  <updated>2013-07-14T20:47:55+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,40 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 4]]></title>
+    <link href="http://swpd.github.io/blog/2013/07/14/gsoc-status-week-4/"/>
+    <updated>2013-07-14T19:40:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/07/14/gsoc-status-week-4</id>
+    <content type="html"><![CDATA[<p><img src="/images/blog/cool_monkey.png">
+This week my time was mostly occupied by completing the MariaDB package. For now,
+the basic version of MariaDB package is available, it can happily communicate
+with the MariaDB server on my Linux box. I wrote a trivial duda web service to
+test some common tasks when dealing with a relational database. During the
+implementation and test I did encounter certain bugs, some are very obscure but
+thank godness I finally fixed them. The current version is still not the final one,
+some APIs may be altered in the future and new features will be introduced into
+it. You can retrieve the code <a href="https://github.com/swpd/duda_mariadb">here</a> for
+your own interest. :-D</p>
+
+<p>Here are some tasks I will be working on for the next week:</p>
+
+<ul>
+<li>write documentation to explain the design and usage of the MariaDB package.</li>
+<li>do some code cleanup and fix some potential bugs.</li>
+<li>write a more comprehensive example for demonstrating How-To use MariaDB package.</li>
+<li>do some survey and try to add connection pool support for the package to reduce
+cost of connection setup and release.</li>
+<li>add source code of <code>libmariadbclient</code> as a third party dependency because on some
+Linux distribution this library may still not come with the asynchronous APIs.</li>
+</ul>
+
+
+<!-- more -->
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 3]]></title>
