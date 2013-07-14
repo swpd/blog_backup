@@ -31,4 +31,5 @@ Here are some tasks I will be working on for the next week:
 cost of connection setup and release.
 * add source code of `libmariadbclient` as a third party dependency because on some 
 Linux distribution this library may still not come with the asynchronous APIs.
+* add mutli-statement query support for the package.
 <!-- more -->
