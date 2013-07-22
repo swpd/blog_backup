@@ -7,8 +7,8 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="This week my time was mostly occupied by completing the MariaDB package. For now,
-the basic version of MariaDB package is available, it can happily &hellip;">
+	<meta name="description" content="For the past a few days of this week, I was integrating the source code that required
+to build libmysqlclient.a into MariaDB package. Meanwhile I &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -77,6 +77,112 @@ the basic version of MariaDB package is available, it can happily &hellip;">
 		
 	
 	<div id="content" class="inner">
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/07/21/gsoc-status-week-5/">
+		
+			GSoC Status: Week 5</a>
+	</h2>
+	<div class="entry-content">
+		<p><img src="/images/blog/seal.png">
+For the past a few days of this week, I was integrating the source code that required
+to build libmysqlclient.a into MariaDB package. Meanwhile I added multiple statements
+query support and connection pooling support to MariaDB package. All the features
+in my proposal has been implemented and it is happy to announce this package is
+coming near to its completion.</p>
+
+<h2>integrate libmysqlclient.a</h2>
+
+<p>It took a bit longer than I expected it would be as MariaDB is such a huge project
+(totally 223MiB after extracting). I did spend some time to figure out the relation
+of different subparts and picked up those that are really necessary for building
+the static library.</p>
+
+<p>The build tools used by MariaDB is <code>cmake</code>, I was not fimiliar with <code>cmake</code> so that
+took me some other time to learn some basic usage. I have consulted from
+<a href="https://kb.askmonty.org/en/compiling-mariadb-from-source/">blog series</a> of MariaDB
+but it did not offer enough information. I turned to more comprehensive
+<a href="http://dev.mysql.com/doc/refman/5.7/en/source-installation.html">documentation</a>,
+although not all the options are available on MariaDB(such as <code>-DWITH_DEBUG</code>), it
+did teach me how to use the same build options used by official MySQL release. (
+with option <code>-DCMAKE_CONFIG=mysql_release</code>)</p>
+
+<p>As there are so many build targets, I seeked help on irc #maria and some guy told
+me to use <code>make mysqlclient</code> if all I wanted is the client library.</p>
+
+<p>After I got all the missing pieces of the puzzle together, it finally worked out.
+I have tested on two other Linux distribution to make sure it was not a pure
+accident. :-D (Note: remember to install <code>cmake</code> and <code>libaio</code>)</p>
+
+<h2>multiple statements query support</h2>
+
+<p>Multiple statements query allows user to submit a query with serveral statements,
+this may lead to SQL injection and should be used carefully.</p>
+
+<p>Using multiple statements query implies after processing there may be several
+result sets, and we need to take care of every result sets and make sure it is
+freed after used.</p>
+
+<p>I added a new stage to handle next result set if there are more than one.</p>
+
+<h2>connection pooling support</h2>
+
+<p>Connection pooling aims to reduce resource allocation and release overhead. It
+was implemented based on the basic part of MariaDB package.</p>
+
+<p>The strategy currently used is to spawn serveal connections for every worker
+thread and put them into thread&rsquo;s pool. Once a use require a connection from the
+pool, the connection is moved from free queue to busy queue. The connection will
+become available again once the user disconnect the connection, it will be returned
+to the pool.</p>
+
+<p>There are something I am still discussing with my mentor, we want to make it more
+dynamic scalable, thus the pool size may expand when all the connections in the
+pool are in use, and shrink the pool size when the usage rate is low.</p>
+
+<p>However, shall we expand the pool size unconditionally? Definitely not, that would
+generate resource overhead which against the reason we are using connection pooling.
+That&rsquo;s when <code>lower_limit</code> and <code>upper_limit</code> are introduced, we can expand the pool
+size if we do not exceed the <code>upper_limit</code> and shrink the pool size if it is still
+larger than <code>lower_limit</code>. And there will be a <code>pool_size</code> to configure the initial
+size of the pool, all of these will make the pool strategy more flexible.</p>
+
+<h2>plans for next week</h2>
+
+<p>For the next week, I will improve the pool support for MariaDB, write documentation
+for this package and an example explaining how to use it.</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-21T19:50:00+08:00" pubdate data-updated="true">Jul 21<span>st</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
 
 
     <article class="post">
