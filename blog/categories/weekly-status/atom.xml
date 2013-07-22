@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Weekly Status | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/weekly-status/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-22T12:05:46+08:00</updated>
+  <updated>2013-07-22T12:12:21+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -47,6 +47,9 @@ me to use <code>make mysqlclient</code> if all I wanted is the client library.</
 <p>After I got all the missing pieces of the puzzle together, it finally worked out.
 I have tested on two other Linux distribution to make sure it was not a pure
 accident. :-D (Note: remember to install <code>cmake</code> and <code>libaio</code>)</p>
+
+<!-- more -->
+
 
 <h2>multiple statements query support</h2>
 

@@ -117,46 +117,9 @@ me to use <code>make mysqlclient</code> if all I wanted is the client library.</
 I have tested on two other Linux distribution to make sure it was not a pure
 accident. :-D (Note: remember to install <code>cmake</code> and <code>libaio</code>)</p>
 
-<h2>multiple statements query support</h2>
-
-<p>Multiple statements query allows user to submit a query with serveral statements,
-this may lead to SQL injection and should be used carefully.</p>
-
-<p>Using multiple statements query implies after processing there may be several
-result sets, and we need to take care of every result sets and make sure it is
-freed after used.</p>
-
-<p>I added a new stage to handle next result set if there are more than one.</p>
-
-<h2>connection pooling support</h2>
-
-<p>Connection pooling aims to reduce resource allocation and release overhead. It
-was implemented based on the basic part of MariaDB package.</p>
-
-<p>The strategy currently used is to spawn serveal connections for every worker
-thread and put them into thread&rsquo;s pool. Once a use require a connection from the
-pool, the connection is moved from free queue to busy queue. The connection will
-become available again once the user disconnect the connection, it will be returned
-to the pool.</p>
-
-<p>There are something I am still discussing with my mentor, we want to make it more
-dynamic scalable, thus the pool size may expand when all the connections in the
-pool are in use, and shrink the pool size when the usage rate is low.</p>
-
-<p>However, shall we expand the pool size unconditionally? Definitely not, that would
-generate resource overhead which against the reason we are using connection pooling.
-That&rsquo;s when <code>lower_limit</code> and <code>upper_limit</code> are introduced, we can expand the pool
-size if we do not exceed the <code>upper_limit</code> and shrink the pool size if it is still
-larger than <code>lower_limit</code>. And there will be a <code>pool_size</code> to configure the initial
-size of the pool, all of these will make the pool strategy more flexible.</p>
-
-<h2>plans for next week</h2>
-
-<p>For the next week, I will improve the pool support for MariaDB, write documentation
-for this package and an example explaining how to use it.</p>
 
 		
-		
+		<a href="/blog/2013/07/21/gsoc-status-week-5/" class="more-link">Read on &rarr;</a>
 	</div>
 
 
