@@ -34,6 +34,7 @@ me to use `make mysqlclient` if all I wanted is the client library.
 After I got all the missing pieces of the puzzle together, it finally worked out.
 I have tested on two other Linux distribution to make sure it was not a pure
 accident. :-D (Note: remember to install `cmake` and `libaio`)
+<!-- more -->
 
 multiple statements query support
 ---------------------------------
