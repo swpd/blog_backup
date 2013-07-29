@@ -7,8 +7,8 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="For the past a few days of this week, I was integrating the source code that required
-to build libmysqlclient.a into MariaDB package. Meanwhile I &hellip;">
+	<meta name="description" content="This week the Duda MariaDB package was completed. I spent some time on reimplementing
+the connection pooling due to my misunderstanding of it. The &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -77,6 +77,65 @@ to build libmysqlclient.a into MariaDB package. Meanwhile I &hellip;">
 		
 	
 	<div id="content" class="inner">
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/07/28/gsoc-status-week-6/">
+		
+			GSoC Status: Week 6</a>
+	</h2>
+	<div class="entry-content">
+		<p><img src="/images/blog/seal_wins.jpg">
+This week the Duda MariaDB package was completed. I spent some time on reimplementing
+the connection pooling due to my misunderstanding of it. The new version maintain
+a pool of connections that are either connected or connecting. And a pool is
+associated with a web service instead of a thread. The pool shall be defined as
+global in the web service, but due to the lack of isolate namespace there can&rsquo;t
+be same pool names in differenct web services.</p>
+
+<p>The documentation of MariaDB package was also updated to explain the usage of it.
+And for those who want to install this package, please refer to the <a href="https://github.com/swpd/monkey">Monkey fork</a>
+of my Github. Clone that repo and checkout to mariadb branch, environment needed
+to build this package is set up for you. (Notice: you need <code>cmake</code> and <code>libaio</code>
+to make things work, so don&rsquo;t forget to install them.) More information can be
+found <a href="https://github.com/swpd/duda_mariadb/blob/master/README.md">here</a>.</p>
+
+<p>Currently I am working on an example to demonstrate the usage of this package. It
+will be finished very soon.</p>
+
+<p>For next week I will make some potential improvemnts to MariaDB package, start
+to review the asynchronous APIs of PostgreSQL and do some experiments.</p>
+
+		
+		
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-28T00:22:00+08:00" pubdate data-updated="true">Jul 28<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
 
 
     <article class="post">

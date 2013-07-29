@@ -4,7 +4,7 @@
   <title><![CDATA[swpd.me]]></title>
   <link href="http://swpd.github.io/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-22T12:12:21+08:00</updated>
+  <updated>2013-07-29T10:47:24+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,34 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 6]]></title>
+    <link href="http://swpd.github.io/blog/2013/07/28/gsoc-status-week-6/"/>
+    <updated>2013-07-28T00:22:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/07/28/gsoc-status-week-6</id>
+    <content type="html"><![CDATA[<p><img src="http://swpd.github.io/images/blog/seal_wins.jpg">
+This week the Duda MariaDB package was completed. I spent some time on reimplementing
+the connection pooling due to my misunderstanding of it. The new version maintain
+a pool of connections that are either connected or connecting. And a pool is
+associated with a web service instead of a thread. The pool shall be defined as
+global in the web service, but due to the lack of isolate namespace there can&rsquo;t
+be same pool names in differenct web services.</p>
+
+<p>The documentation of MariaDB package was also updated to explain the usage of it.
+And for those who want to install this package, please refer to the <a href="https://github.com/swpd/monkey">Monkey fork</a>
+of my Github. Clone that repo and checkout to mariadb branch, environment needed
+to build this package is set up for you. (Notice: you need <code>cmake</code> and <code>libaio</code>
+to make things work, so don&rsquo;t forget to install them.) More information can be
+found <a href="https://github.com/swpd/duda_mariadb/blob/master/README.md">here</a>.</p>
+
+<p>Currently I am working on an example to demonstrate the usage of this package. It
+will be finished very soon.</p>
+
+<p>For next week I will make some potential improvemnts to MariaDB package, start
+to review the asynchronous APIs of PostgreSQL and do some experiments.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 5]]></title>
