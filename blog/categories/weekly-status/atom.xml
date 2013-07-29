@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Weekly Status | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/weekly-status/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-29T10:47:24+08:00</updated>
+  <updated>2013-07-29T10:51:47+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -38,6 +38,9 @@ will be finished very soon.</p>
 
 <p>For next week I will make some potential improvemnts to MariaDB package, start
 to review the asynchronous APIs of PostgreSQL and do some experiments.</p>
+
+<!-- more -->
+
 ]]></content>
   </entry>
   
