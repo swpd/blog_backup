@@ -26,3 +26,4 @@ will be finished very soon.
 
 For next week I will make some potential improvemnts to MariaDB package, start
 to review the asynchronous APIs of PostgreSQL and do some experiments.
+<!-- more -->
