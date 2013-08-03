@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Monkey | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/monkey/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-07-29T10:51:47+08:00</updated>
+  <updated>2013-08-03T23:02:30+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,33 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 7]]></title>
+    <link href="http://swpd.github.io/blog/2013/08/03/gsoc-status-week-7/"/>
+    <updated>2013-08-03T20:32:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/08/03/gsoc-status-week-7</id>
+    <content type="html"><![CDATA[<p><img src="/images/blog/monkey_and_elephant.jpg">
+This week my effort was mainly focused on developing a web service to demonstrate
+usage of the MariaDB package and completing the documentation. You may check it
+out <a href="https://github.com/swpd/duda_mariadb_demo">here</a>.</p>
+
+<p>I was also getting myself familiar with the C library APIs of PostgreSQL, the
+community comes with comprehensive and clear documentation. For the next couple
+days, the documentation website will undoubtedly be my most visited. What&rsquo;s more,
+the library comes with native non-blocking support. It rocks, elephant!</p>
+
+<p>This morning I also got an email from Google that announced my successfully pass
+of the midterm evaluation. It is an amazing moment and I would like to share with
+those that ever helped and guided me.</p>
+
+<p>For the next week, I will get my hands dirty in the Duda PostgreSQL package by
+designing the basic data structures and function prototypes.</p>
+
+<!-- more -->
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 6]]></title>
@@ -189,40 +216,6 @@ avoid connect-on-demand mechanism.</p>
 
 <p>For the next week, I will keep hard working on making the implementation complete
 and integrate it with Duda.</p>
-
-<!-- more -->
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[GSoC Status: Week 2]]></title>
-    <link href="http://swpd.github.io/blog/2013/06/30/gsoc-status-week-2/"/>
-    <updated>2013-06-30T23:54:00+08:00</updated>
-    <id>http://swpd.github.io/blog/2013/06/30/gsoc-status-week-2</id>
-    <content type="html"><![CDATA[<p><img src="/images/blog/jump_monkey.jpg">
-This week I came out with the API draft for Duda MariaDB package, it has been
-pushed to Github but is still under development and may be altered later. For your
-interest, you can refer to the repository and leave me some comments:
-<a href="https://github.com/swpd/duda_mariadb">Duda MariaDB package</a>.</p>
-
-<p>Roughly speaking, the APIs were influenced by the <code>mariasql</code> Node.js package and
-the asynchronous access code of <code>redis</code>. Currently there are three header files,
-<code>mariadb.h</code> contains event handling functions declaration for MariaDB connection
-sockets and some global definitions; <code>connection.h</code> contains code related to
-MariaDB client connections, it is responsible for connection management; <code>query.h</code>
-takes care of stuffs related to a MariaDB query, every connection can have several
-queries, the queries arer linked as a list and will be executed one by one.</p>
-
-<p><a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">Monkey Internals</a>
-was updated this week (composed part of the scheduler section; the command line
-utility section was finished), the remaining sections are still under writing.</p>
-
-<p>This week I also moved to my new apartment, everything got settled down and it
-is a nice place :D.</p>
-
-<p>For the next week, I will be implementing the APIs and try to put the package into
-working.</p>
 
 <!-- more -->
 
