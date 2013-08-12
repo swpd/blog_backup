@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Monkey | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/monkey/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-08-03T23:02:30+08:00</updated>
+  <updated>2013-08-12T11:05:41+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,33 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 8]]></title>
+    <link href="http://swpd.github.io/blog/2013/08/12/gsoc-status-week-8/"/>
+    <updated>2013-08-12T08:59:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/08/12/gsoc-status-week-8</id>
+    <content type="html"><![CDATA[<p><img src="/images/blog/fat_elephant.jpg">
+This week the draft APIs of PostgreSQL package has come out. You may check it out
+on my <a href="https://github.com/swpd/duda_postgresql">Github</a>, feel free to leave me a
+comment.</p>
+
+<p>The APIs are modeled after the previous <a href="https://github.com/swpd/duda_mariadb">MariaDB</a>
+package. By doing so we can hide the differences between MariaDB and PostgreSQL
+from our users and let the packages deal with the details.</p>
+
+<p>The asynchronous APIs of PostgreSQL provide a more flexible way to issue non-blocking
+connection and query, for example you can use a string array to specify the connection
+options you are interested and leave others as default. Currently I am working on
+integraing the APIs with the event handling module of Duda.</p>
+
+<p>Next week I will mainly focus on the asynchronous handling implementation of the
+PostgreSQL package.</p>
+
+<!-- more -->
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 7]]></title>
@@ -184,38 +211,6 @@ Linux distribution this library may still not come with the asynchronous APIs.</
 <li>add mutli-statement query support for the package.</li>
 </ul>
 
-
-<!-- more -->
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[GSoC Status: Week 3]]></title>
-    <link href="http://swpd.github.io/blog/2013/07/06/gsoc-status-week-3/"/>
-    <updated>2013-07-06T11:21:00+08:00</updated>
-    <id>http://swpd.github.io/blog/2013/07/06/gsoc-status-week-3</id>
-    <content type="html"><![CDATA[<p><img src="/images/blog/running_monkey.jpg">
-This week I spent most of my time implementing the MariaDB package, it is still
-incomplete but I&rsquo;ve pushed it to Github, check <a href="https://github.com/swpd/duda_mariadb">it</a>
-out if you are interested.</p>
-
-<p>The problem I am currently stuck is for every continue part of the asynchronous
-version MariaDB APIs, we need to pass the <code>ready_status</code>(bitmask of all events
-occurred on a MariaDB connection socket) in able to issue the call. However,
-the socket event callback functions are spilt into five sepreated functions,
-and every function only knows the corresponding event it shall handle but no idea
-about all the events available on the MariaDB socket. This makes it more tricky
-to write the callback functions right, I need to make sure what events actually
-occurs on every stage of a MariaDB&rsquo;s connection lifecycle.</p>
-
-<p>Meanwhile, I am also discussing with Eduardo Silva to see what we can do with it.
-He did offer me some useful advinces and will show me some examples later. And
-as he recommended, we may add connection pool support to our MariaDB package to
-avoid connect-on-demand mechanism.</p>
-
-<p>For the next week, I will keep hard working on making the implementation complete
-and integrate it with Duda.</p>
 
 <!-- more -->
 
