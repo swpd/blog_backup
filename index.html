@@ -7,9 +7,8 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="This week the draft APIs of PostgreSQL package has come out. You may check it out
-on my Github, feel free to leave me a
-comment. The APIs are &hellip;">
+	<meta name="description" content="This week I am happy to announce the basic PostgreSQL package can pass the build
+process and integrate with Monkey. The asynchronous query handling &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -78,6 +77,72 @@ comment. The APIs are &hellip;">
 		
 	
 	<div id="content" class="inner">
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/08/18/gsoc-status-week-9/">
+		
+			GSoC Status: Week 9</a>
+	</h2>
+	<div class="entry-content">
+		<p><img src="/images/blog/serious_elephant.jpg">
+This week I am happy to announce the basic PostgreSQL package can pass the build
+process and integrate with Monkey. The asynchronous query handling have been added
+to the package and serveral bugs got fixed. I wrote some tests to make sure it really
+worked out. You may want to have a look at the <a href="https://github.com/swpd/duda_postgresql">package</a>.</p>
+
+<p>Another stuff worth to mention about is I got a bug report for my MariaDB package
+(thanks to <code>C1H1O3</code> on the irc), it is a good sign that someone is evaluating and
+testing the package because that will make it more stable and robust.</p>
+
+<p>I tried to reproduce the bug and traced the code with <code>gdb</code>, after several tests
+I figured out the MariaDB package seemed to work properly. I wondered it might be
+a bug from the Duda framework so I set up another tests without using MariaDB
+package and could still reproduce the bug. It turned out to be a bug hidden in
+Duda and I have reported it on the irc, <code>edsiper</code> will take care of it and I will
+see what I can help.</p>
+
+<p>C1H1O3 also advised me to use configuration file for connection pool parameters,
+which seems like a good idea as we don&rsquo;t need to rebuild the application if all
+we need is just to change the parameters.</p>
+
+<p>Here are some tasks I will be hanlding for the next week:
+* add connection pooling support to the PostgreSQL package
+* as there are often more than one function to do the same thing in PostgreSQL
+client libray <code>libpq</code>, I will add the sibling functions to the APIs of package to
+make it more flexible.</p>
+
+
+		
+		<a href="/blog/2013/08/18/gsoc-status-week-9/" class="more-link">Read on &rarr;</a>
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-18T19:16:00+08:00" pubdate data-updated="true">Aug 18<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
 
 
     <article class="post">
@@ -638,87 +703,10 @@ my project will be posted on this blog to keep the community informed.</p>
 	
 </div></article>
 
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2013/05/18/monkey-http-daemon-internals/">
-		
-			Monkey HTTP Daemon Internals</a>
-	</h2>
-	<div class="entry-content">
-		<p><img src="/images/blog/monkey.jpg" title="Go! Monkey!" alt="Go! Monkey!"></p>
-
-<h2>Table of Contents</h2>
-
-<ul>
-<li><a href="#intro">Introduction</a></li>
-<li><a href="#data">Basic Data Structures</a></li>
-<li><a href="#workflow">Brief Workflow</a></li>
-<li><a href="#config">Configuration</a></li>
-<li><a href="#sched">Scheduler</a></li>
-<li><a href="#clock">Clock</a></li>
-<li><a href="#hooks">Hooks</a></li>
-<li><a href="#http">HTTP Requests and Responses</a></li>
-<li><a href="#api">API Exposure</a></li>
-<li><a href="#plugins">Plugins</a></li>
-<li><a href="#appendix">Appendix</a></li>
-</ul>
-
-
-<h2>Introduction<a id='intro'></a></h2>
-
-<p><a href="http://monkey-project.com">Monkey HTTP Daemon</a> is a web server that aims to get
-the most out of the Linux platform. It comes with low resource comsumption and
-great scalability which makes it a perfect solution for embedded devices.</p>
-
-<p>Due to the compact size of Monkey&rsquo;s codebase, it is a proper place for revealing
-the internals of a event-driven HTTP web server. Spending some time on analysing
-the source code of Monkey will surely worth the cost.</p>
-
-<p>This post is about the internals of Monkey&rsquo;s critical components from the
-perspective of source code, you may consider it as a supplement of <a href="http://edsiper.linuxchile.cl/blog/2013/02/27/architecture-of-a-linux-based-web-server/">this
-post</a>
-(written by the author of Monkey). You are supposed to read it first to get a
-general view of Monkey.</p>
-
-<p><strong>Notice</strong>: This post is based on Monkey 1.2.0, you may want to get the latest code.
-(check out <a href="http://monkey-project.com">home page</a> for more information). If you
-are using an older version, there might be something different, e.g. red-black
-tree is introduced since version 1.2.0.</p>
-
-
-		
-		<a href="/blog/2013/05/18/monkey-http-daemon-internals/" class="more-link">Read on &rarr;</a>
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-05-18T09:21:00+08:00" pubdate data-updated="true">May 18<span>th</span>, 2013</time></div>
-	<div class="tags">
-
-
-	<a class='category' href='/blog/categories/http/'>HTTP</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/source-code/'>Source Code</a>, <a class='category' href='/blog/categories/web-server/'>Web Server</a>
-
-
-</div>
-	
-</div></article>
-
 <nav id="pagenavi">
     
+    
+        <a href="/blog/page/2/" class="next">Next</a>
     
     <div class="center"><a href="/blog/archives">Blog Archives</a></div>
 </nav></div>

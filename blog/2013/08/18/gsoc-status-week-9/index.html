@@ -1,0 +1,210 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>GSoC Status: Week 9 - swpd.me</title>
+	<meta name="author" content="swpd">
+
+	
+	<meta name="description" content="This week I am happy to announce the basic PostgreSQL package can pass the build
+process and integrate with Monkey. The asynchronous query handling &hellip;">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<link href="/atom.xml" rel="alternate" title="swpd.me" type="application/atom+xml">
+	<link rel="canonical" href="">
+	<link href="/favicon.png" rel="shortcut icon">
+	<link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	
+</head>
+
+<body>
+	<header id="header" class="inner"><h1><a href="/">swpd.me</a></h1>
+<nav id="main-nav"><ul class="main">
+	<li><a href="/">Blog</a></li>
+	<li><a href="/blog/archives">Archives</a></li>
+</ul>
+</nav>
+<nav id="mobile-nav">
+	<div class="alignleft menu">
+		<a class="button">Menu</a>
+		<div class="container"><ul class="main">
+	<li><a href="/">Blog</a></li>
+	<li><a href="/blog/archives">Archives</a></li>
+</ul>
+</div>
+	</div>
+	<div class="alignright search">
+		<a class="button"></a>
+		<div class="container">
+			<form action="http://google.com/search" method="get">
+				<input type="text" name="q" results="0">
+				<input type="hidden" name="q" value="site:swpd.github.io">
+			</form>
+		</div>
+	</div>
+</nav>
+<nav id="sub-nav" class="alignright">
+	<div class="social">
+		
+		
+		
+		<a class="twitter" href="http://twitter.com/swpdtz" title="Twitter">Twitter</a>
+		
+		
+		<a class="github" href="https://github.com/swpd" title="GitHub">GitHub</a>
+		
+    
+		
+		
+		
+		
+		
+		<a class="rss" href="/atom.xml" title="RSS">RSS</a>
+		
+	</div>
+	<form class="search" action="http://google.com/search" method="get">
+		<input class="alignright" type="text" name="q" results="0">
+		<input type="hidden" name="q" value="site:swpd.github.io">
+	</form>
+</nav>
+
+</header>
+	
+		
+	
+	<div id="content" class="inner"><article class="post">
+	<h2 class="title">GSoC Status: Week 9</h2>
+	<div class="entry-content"><p><img src="/images/blog/serious_elephant.jpg">
+This week I am happy to announce the basic PostgreSQL package can pass the build
+process and integrate with Monkey. The asynchronous query handling have been added
+to the package and serveral bugs got fixed. I wrote some tests to make sure it really
+worked out. You may want to have a look at the <a href="https://github.com/swpd/duda_postgresql">package</a>.</p>
+
+<p>Another stuff worth to mention about is I got a bug report for my MariaDB package
+(thanks to <code>C1H1O3</code> on the irc), it is a good sign that someone is evaluating and
+testing the package because that will make it more stable and robust.</p>
+
+<p>I tried to reproduce the bug and traced the code with <code>gdb</code>, after several tests
+I figured out the MariaDB package seemed to work properly. I wondered it might be
+a bug from the Duda framework so I set up another tests without using MariaDB
+package and could still reproduce the bug. It turned out to be a bug hidden in
+Duda and I have reported it on the irc, <code>edsiper</code> will take care of it and I will
+see what I can help.</p>
+
+<p>C1H1O3 also advised me to use configuration file for connection pool parameters,
+which seems like a good idea as we don&rsquo;t need to rebuild the application if all
+we need is just to change the parameters.</p>
+
+<p>Here are some tasks I will be hanlding for the next week:
+* add connection pooling support to the PostgreSQL package
+* as there are often more than one function to do the same thing in PostgreSQL
+client libray <code>libpq</code>, I will add the sibling functions to the APIs of package to
+make it more flexible.</p>
+
+<!-- more -->
+
+</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-18T19:16:00+08:00" pubdate data-updated="true">Aug 18<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
+
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	
+	<a class="addthis_counter addthis_pill_style"></a>
+	</div>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
+
+
+
+<section id="comment">
+    <h2 class="title">Comments</h2>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</section>
+</div>
+	<footer id="footer" class="inner"><div>
+    <a href="http://www.vim.org/">
+        <img src="/images/vim_powered.gif" title="Powered by Vim" alt="Powered by Vim">
+    </a>
+    <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US">
+        <img src="/images/cc.png" title="Creative Commons" alt="Creative Commons">
+    </a>
+</div>
+Copyright &copy; 2013
+
+    swpd
+
+</footer>
+	<script src="/javascripts/slash.js"></script>
+<script src="/javascripts/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script> <!-- Delete or comment this line to disable Fancybox -->
+
+
+<script type="text/javascript">
+      var disqus_shortname = 'swpdtz';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://swpd.github.io/blog/2013/08/18/gsoc-status-week-9/';
+        var disqus_url = 'http://swpd.github.io/blog/2013/08/18/gsoc-status-week-9/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-41181986-1']);
+		_gaq.push(['_trackPageview']);
+
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		})();
+	</script>
+
+
+
+</body>
+</html>
