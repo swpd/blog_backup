@@ -4,7 +4,7 @@
   <title><![CDATA[swpd.me]]></title>
   <link href="http://swpd.github.io/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-08-19T09:56:00+08:00</updated>
+  <updated>2013-08-26T13:18:17+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,33 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 10]]></title>
+    <link href="http://swpd.github.io/blog/2013/08/26/gsoc-status-week-10/"/>
+    <updated>2013-08-26T12:04:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/08/26/gsoc-status-week-10</id>
+    <content type="html"><![CDATA[<p><img src="http://swpd.github.io/images/blog/war_elephant.jpg">
+This week the PostgreSQL package was completed, connection pooling support was
+successfully added. Meanwhile, the sibling functions that are used for querying
+and escaping string was also introduced into the package to provide more choice
+for the user.</p>
+
+<p>In order to demonstrate the usage of the PostgreSQL package, I have created
+another duda web service <a href="https://github.com/swpd/duda_postgresql_demo">duda_postgresql_demo</a>
+on Github, if you ever used the mariadb_demo web service, you&rsquo;ll find it pretty
+similar. Check it out for your interest.</p>
+
+<p>From now on till the end of GSoC I will test the two packages I am in charge of
+and fix some potential bugs to make them more stable. The documentation of
+PostgreSQL package will be completed in no time. Last but not least, I shall
+continue the <a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">blog</a>
+about Monkey internals that I haven&rsquo;t finished yet.</p>
+
+<!-- more -->
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 9]]></title>
