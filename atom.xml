@@ -4,7 +4,7 @@
   <title><![CDATA[swpd.me]]></title>
   <link href="http://swpd.github.io/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-08-26T13:18:17+08:00</updated>
+  <updated>2013-09-09T17:19:42+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,35 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 11-12]]></title>
+    <link href="http://swpd.github.io/blog/2013/09/08/gsoc-status-week-11-12/"/>
+    <updated>2013-09-08T10:37:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/09/08/gsoc-status-week-11-12</id>
+    <content type="html"><![CDATA[<p><img src="http://swpd.github.io/images/blog/home.jpg">
+In the first half of week 11, I spent most of my time completing the documentation
+of the PostgreSQL package. You may check it out <a href="https://github.com/swpd/duda_postgresql">here</a>.
+Bugs and typos were fixed for that package as well.</p>
+
+<p>After that I travelled back home to take a short break and stay with my dear family.
+For this reason week 12 was mostly occupied by family and friends. It is always
+comfortable and enjoyable when you can kick back and talk about your recent status
+with them!</p>
+
+<p>Before I went home, I intended to make some fixes and continue the blog post with
+the working box in my apartment via VPN. Unfortunately it didn&rsquo;t work out and all
+I got at home was a pretty old machine which can hardly open more than 4 tabs
+when browsing web. That&rsquo;s why this post came late.</p>
+
+<p>For next week I will be improving the codebases, both bug fixing and documentation
+polishing, as the final evaluation is coming. And two more sections of the internal
+blog will be accomplished.</p>
+
+<!-- more -->
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 10]]></title>
@@ -1193,7 +1222,7 @@ encountered.</p>
 do we need other fields? There are three reasons for doing so:</p>
 
 <ol>
-<li>some fields require further parsing, such as <code>server_names</code> is a list build
+<li>some fields require further parsing, such as <code>server_names</code> is a list built
 from the plain text value of entry <code>Servername</code>.</li>
 <li>stores the entry value in a field can make code for retrieving entry value
 shorter.</li>
@@ -1366,7 +1395,7 @@ and implementation.</p>
 
 
 <p>When a client issues a new connection to the Monkey server, a new <code>sched_connection</code>
-is allocated. Then Monkey will schedule this connection based on a simple load
+is associated with it. Then Monkey will schedule this connection based on a simple load
 balance strategy: find the HTTP worker that holds the least active connections
 and dispatch the new connection to it. Although this is a trivial strategy, it
 works fine because mostly HTTP request processing and response generating won&rsquo;t

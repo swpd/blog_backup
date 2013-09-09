@@ -860,7 +860,7 @@ encountered.</p>
 do we need other fields? There are three reasons for doing so:</p>
 
 <ol>
-<li>some fields require further parsing, such as <code>server_names</code> is a list build
+<li>some fields require further parsing, such as <code>server_names</code> is a list built
 from the plain text value of entry <code>Servername</code>.</li>
 <li>stores the entry value in a field can make code for retrieving entry value
 shorter.</li>
@@ -1033,7 +1033,7 @@ and implementation.</p>
 
 
 <p>When a client issues a new connection to the Monkey server, a new <code>sched_connection</code>
-is allocated. Then Monkey will schedule this connection based on a simple load
+is associated with it. Then Monkey will schedule this connection based on a simple load
 balance strategy: find the HTTP worker that holds the least active connections
 and dispatch the new connection to it. Although this is a trivial strategy, it
 works fine because mostly HTTP request processing and response generating won&rsquo;t

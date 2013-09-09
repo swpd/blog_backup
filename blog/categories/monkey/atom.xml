@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Monkey | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/monkey/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-08-26T13:18:17+08:00</updated>
+  <updated>2013-09-09T17:19:42+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -12,6 +12,35 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Status: Week 11-12]]></title>
+    <link href="http://swpd.github.io/blog/2013/09/08/gsoc-status-week-11-12/"/>
+    <updated>2013-09-08T10:37:00+08:00</updated>
+    <id>http://swpd.github.io/blog/2013/09/08/gsoc-status-week-11-12</id>
+    <content type="html"><![CDATA[<p><img src="/images/blog/home.jpg">
+In the first half of week 11, I spent most of my time completing the documentation
+of the PostgreSQL package. You may check it out <a href="https://github.com/swpd/duda_postgresql">here</a>.
+Bugs and typos were fixed for that package as well.</p>
+
+<p>After that I travelled back home to take a short break and stay with my dear family.
+For this reason week 12 was mostly occupied by family and friends. It is always
+comfortable and enjoyable when you can kick back and talk about your recent status
+with them!</p>
+
+<p>Before I went home, I intended to make some fixes and continue the blog post with
+the working box in my apartment via VPN. Unfortunately it didn&rsquo;t work out and all
+I got at home was a pretty old machine which can hardly open more than 4 tabs
+when browsing web. That&rsquo;s why this post came late.</p>
+
+<p>For next week I will be improving the codebases, both bug fixing and documentation
+polishing, as the final evaluation is coming. And two more sections of the internal
+blog will be accomplished.</p>
+
+<!-- more -->
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Status: Week 10]]></title>
@@ -125,37 +154,6 @@ those that ever helped and guided me.</p>
 
 <p>For the next week, I will get my hands dirty in the Duda PostgreSQL package by
 designing the basic data structures and function prototypes.</p>
-
-<!-- more -->
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[GSoC Status: Week 6]]></title>
-    <link href="http://swpd.github.io/blog/2013/07/28/gsoc-status-week-6/"/>
-    <updated>2013-07-28T00:22:00+08:00</updated>
-    <id>http://swpd.github.io/blog/2013/07/28/gsoc-status-week-6</id>
-    <content type="html"><![CDATA[<p><img src="/images/blog/seal_wins.jpg">
-This week the Duda MariaDB package was completed. I spent some time on reimplementing
-the connection pooling due to my misunderstanding of it. The new version maintain
-a pool of connections that are either connected or connecting. And a pool is
-associated with a web service instead of a thread. The pool shall be defined as
-global in the web service, but due to the lack of isolate namespace there can&rsquo;t
-be same pool names in differenct web services.</p>
-
-<p>The documentation of MariaDB package was also updated to explain the usage of it.
-And for those who want to install this package, please refer to the <a href="https://github.com/swpd/monkey">Monkey fork</a>
-of my Github. Clone that repo and checkout to mariadb branch, environment needed
-to build this package is set up for you. (Notice: you need <code>cmake</code> and <code>libaio</code>
-to make things work, so don&rsquo;t forget to install them.) More information can be
-found <a href="https://github.com/swpd/duda_mariadb/blob/master/README.md">here</a>.</p>
-
-<p>Currently I am working on an example to demonstrate the usage of this package. It
-will be finished very soon.</p>
-
-<p>For next week I will make some potential improvemnts to MariaDB package, start
-to review the asynchronous APIs of PostgreSQL and do some experiments.</p>
 
 <!-- more -->
 

@@ -7,8 +7,9 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="This week the PostgreSQL package was completed, connection pooling support was
-successfully added. Meanwhile, the sibling functions that are used &hellip;">
+	<meta name="description" content="In the first half of week 11, I spent most of my time completing the documentation
+of the PostgreSQL package. You may check it out here.
+Bugs and &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -77,6 +78,64 @@ successfully added. Meanwhile, the sibling functions that are used &hellip;">
 		
 	
 	<div id="content" class="inner">
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/09/08/gsoc-status-week-11-12/">
+		
+			GSoC Status: Week 11-12</a>
+	</h2>
+	<div class="entry-content">
+		<p><img src="/images/blog/home.jpg">
+In the first half of week 11, I spent most of my time completing the documentation
+of the PostgreSQL package. You may check it out <a href="https://github.com/swpd/duda_postgresql">here</a>.
+Bugs and typos were fixed for that package as well.</p>
+
+<p>After that I travelled back home to take a short break and stay with my dear family.
+For this reason week 12 was mostly occupied by family and friends. It is always
+comfortable and enjoyable when you can kick back and talk about your recent status
+with them!</p>
+
+<p>Before I went home, I intended to make some fixes and continue the blog post with
+the working box in my apartment via VPN. Unfortunately it didn&rsquo;t work out and all
+I got at home was a pretty old machine which can hardly open more than 4 tabs
+when browsing web. That&rsquo;s why this post came late.</p>
+
+<p>For next week I will be improving the codebases, both bug fixing and documentation
+polishing, as the final evaluation is coming. And two more sections of the internal
+blog will be accomplished.</p>
+
+
+		
+		<a href="/blog/2013/09/08/gsoc-status-week-11-12/" class="more-link">Read on &rarr;</a>
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-08T10:37:00+08:00" pubdate data-updated="true">Sep 8<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
 
 
     <article class="post">
@@ -625,69 +684,6 @@ working.</p>
 
 
 <time datetime="2013-06-30T23:54:00+08:00" pubdate data-updated="true">Jun 30<span>th</span>, 2013</time></div>
-	<div class="tags">
-
-
-	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
-
-
-</div>
-	
-</div></article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2013/06/24/gsoc-status-week-1/">
-		
-			GSoC Status: Week 1</a>
-	</h2>
-	<div class="entry-content">
-		<p><img src="/images/blog/music_monkey.jpg">
-During the first week of GSoC I was investigating the APIs of MariaDB to get myself
-familiar with its usages. I had done several experiments with a simple MariaDB
-client program which includes connecting database, running queries, fetching results
-and preparing SQL statements.</p>
-
-<p>After getting a basic understanding of the MariaDB client library, I moved on to
-the asynchronous APIs. There&rsquo;s a <a href="https://kb.askmonty.org/en/using-the-non-blocking-library/">post</a>
-explaining how to use non-blocking interfaces with a trivial example. The non-blocking
-APIs are modelled after the normal blocking ones, for example the non-blocking
-version of <code>mysql_real_query</code> is a couple of functions named <code>mysql_real_query_start</code>
-and <code>mysql_real_query_cont</code>.</p>
-
-<p>Besides the official introduction of non-blocking APIs, there&rsquo;s a Node.js package
-<code>mariasql</code> that makes use of the non-blocking APIs and serves as a complete reference
-of writing a MariaDB driver. I am studying the source code of <code>mariasql</code> and the
-<code>redis</code> package of Monkey to see how I can integrate it with the Monkey&rsquo;s event
-loop.</p>
-
-<p>For the next week I will focus on designing the basic structures and functions for
-Monkey MariaDB package. And the unfinished <a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">blog entry</a>
-discussing about Monkey intervals will continue to be updated from next week
-(got a lot of stuffs related to graduation recently).</p>
-
-
-		
-		<a href="/blog/2013/06/24/gsoc-status-week-1/" class="more-link">Read on &rarr;</a>
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-24T11:36:00+08:00" pubdate data-updated="true">Jun 24<span>th</span>, 2013</time></div>
 	<div class="tags">
 
 
