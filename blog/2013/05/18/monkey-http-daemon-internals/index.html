@@ -370,7 +370,7 @@ Main function demonstrates the workflow of Monkey in a high level view:</p>
 
 <ul>
 <li>As most traditional Unix program, Monkey starts with parsing command line
-options, the options are all very self-explained. Use <code>monkey -h</code> to get full
+options, the options are all very self-explanatory. Use <code>monkey -h</code> to get full
 description of options.</li>
 </ul>
 
@@ -1032,14 +1032,14 @@ and implementation.</p>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>When a client issues a new connection to the Monkey server, a new <code>sched_connection</code>
-is associated with it. Then Monkey will schedule this connection based on a simple load
-balance strategy: find the HTTP worker that holds the least active connections
-and dispatch the new connection to it. Although this is a trivial strategy, it
-works fine because mostly HTTP request processing and response generating won&rsquo;t
-take a long time. But if there is an HTTP request requires enormous amount of
-computation, other requests handled by the same worker will wait for a long time
-while other workers may be idle.</p>
+<p>When a client issues a new connection to the Monkey server, a new socket file
+descriptor is associated with it. Then Monkey will schedule this connection based
+on a simple load balance strategy: find the HTTP worker that holds the least active
+connections and dispatch the new connection to it. Although this is a trivial
+strategy, it works fine because mostly HTTP request processing and response
+generating won&rsquo;t take a long time. But if there is an HTTP request requires enormous
+amount of computation, other requests handled by the same worker will wait for a
+long time while other workers may be idle.</p>
 
 <p>In order to schedule connections, Monkey needs to keep track of some extra information
 of every HTTP worker. For every HTTP worker, there is a associated <code>sched_list_node</code>
@@ -1106,6 +1106,9 @@ the active connections of a worker is given by the difference of them:</p>
 connections of the corresponding worker according to their file descriptors. The
 <code>_rb_head</code> field of active <code>sched_connection</code> serve as tree nodes and are linked
 together as a red-black tree.</p>
+
+<p><code>busy_queue</code> is a linked list of used scheduling connection nodes while <code>av_queue</code>
+is a linked list of available scheduling connection nodes.</p>
 
 <figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -1178,12 +1181,376 @@ together as a red-black tree.</p>
 </span></code></pre></td></tr></table></div></figure>
 
 
+<p>As we can see above, Monkey will go through the <code>sched_list_node</code> array in order
+to pick up the worker with lowest load and return its index.</p>
+
+<p>When the socket is finally established, a new <code>sched_connection</code> structure is
+allocated for the socket to maintain some connection related information. All the
+scheduling units of a worker are pre-allocated as the maximum connection number
+a worker is able to handle is already known. What can we benefit from this strategy?
+If we allocate a new <code>sched_connection</code> every time a new connection comes and
+release the structure when the request reaches its end, it will generate some
+overhead. For a high loads Monkey instance, this may result in a degradation of
+performance.</p>
+
+<p>When a worker is lauched by Monkey, an array of <code>sched_connection</code> structures are
+initialized and all the elements of that array are linked to the <code>av_queue</code> list
+of the worker (function <code>mk_sched_register_thread</code> in <code>mk_scheduler.c</code>).</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/* Start filling the array */</span>
+</span><span class='line'><span class="n">array</span> <span class="o">=</span> <span class="n">mk_mem_malloc_z</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sched_connection</span><span class="p">)</span> <span class="o">*</span> <span class="n">config</span><span class="o">-&gt;</span><span class="n">worker_capacity</span><span class="p">);</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">config</span><span class="o">-&gt;</span><span class="n">worker_capacity</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">sched_conn</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">array</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">sched_conn</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">=</span> <span class="n">MK_SCHEDULER_CONN_AVAILABLE</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">sched_conn</span><span class="o">-&gt;</span><span class="n">socket</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">sched_conn</span><span class="o">-&gt;</span><span class="n">arrive_time</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">mk_list_add</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sched_conn</span><span class="o">-&gt;</span><span class="n">_head</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">av_queue</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If a new <code>sched_connection</code> is required, the worker will remove one from the
+<code>av_queue</code> and add it to the <code>busy_queue</code> (function <code>mk_sched_register_client</code> in
+<code>mk_scheduler.c</code>).  If all the available nodes are used, the new connection will
+be dropped by Monkey.</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">sched_conn</span> <span class="o">=</span> <span class="n">mk_list_entry_first</span><span class="p">(</span><span class="n">av_queue</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sched_connection</span><span class="p">,</span> <span class="n">_head</span><span class="p">);</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="cm">/* Move to busy queue */</span>
+</span><span class='line'><span class="n">mk_list_del</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sched_conn</span><span class="o">-&gt;</span><span class="n">_head</span><span class="p">);</span>
+</span><span class='line'><span class="n">mk_list_add</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sched_conn</span><span class="o">-&gt;</span><span class="n">_head</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sched</span><span class="o">-&gt;</span><span class="n">busy_queue</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Figure 4-1 shows a possible layout of the array and how the scheduling connection
+nodes are linked together by two queues.</p>
+
+<p><img src="/images/blog/scheduling_connection_list.jpg" title="Scheduling Connection List" alt="Figure 4-1 Scheduling Connection List"></p>
+
 <ul>
 <li><h3>Epoll</h3></li>
 </ul>
 
 
+<p>As we have mentioned above, Monkey is an event-driven web server and the I/O event
+notification facility used by it is <code>epoll</code> (Linux-specific).</p>
+
+<p>For every worker thread spawned by Monkey, there is an epoll instance for monitoring
+socket file descriptors that are dispatched it. When a new connection is accepted
+by Monkey, the socket fd is first dispatched to the worker with lowest load and
+added to its epoll instance (see <code>mk_sched_add_client</code> function in <code>mk_scheduler.c</code>
+for more information).</p>
+
+<p>The main loop of every worker then waits for events that occurs on the socket fds that
+it is responsible to monitor, and processes the events properly by using the event
+handler of the sockets. According to the event types, different routines of the
+event handler will be called. When read event is fired on the socket, the read
+routine of event handler will be called, and when it is a write event, the
+corresponding write routine will be called, etc. (Of course there can be one than
+one events occur on a single socket fd simultaneously)</p>
+
+<p>Source code never lies (see <code>mk_epoll_init</code> in <code>mk_epoll.c</code>):</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/* worker thread main loop */</span>
+</span><span class='line'><span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">ret</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class='line'>    <span class="cm">/*</span>
+</span><span class='line'><span class="cm">     * wait for upcoming events.</span>
+</span><span class='line'><span class="cm">     * notice: the timeout of epoll_wait is defined as MK_EPOLL_WAIT_TIMEOUT,</span>
+</span><span class='line'><span class="cm">     * currently the value is 3000 milliseconds, that is 3 seconds, if not any</span>
+</span><span class='line'><span class="cm">     * events are fired after 3 seconds after the last check, the worker will</span>
+</span><span class='line'><span class="cm">     * quit waiting and check if it needs to close some sockets due to their</span>
+</span><span class='line'><span class="cm">     * timeouts.</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="n">num_fds</span> <span class="o">=</span> <span class="n">epoll_wait</span><span class="p">(</span><span class="n">efd</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">max_events</span><span class="p">,</span> <span class="n">MK_EPOLL_WAIT_TIMEOUT</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_fds</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">fd</span> <span class="o">=</span> <span class="n">events</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">data</span><span class="p">.</span><span class="n">fd</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="cm">/* call the corresponding handler routine */</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">events</span> <span class="o">&amp;</span> <span class="n">EPOLLIN</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">MK_TRACE</span><span class="p">(</span><span class="s">&quot;[FD %i] EPoll Event READ&quot;</span><span class="p">,</span> <span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">handler</span><span class="o">-&gt;</span><span class="n">read</span><span class="p">)</span> <span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">events</span> <span class="o">&amp;</span> <span class="n">EPOLLOUT</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">MK_TRACE</span><span class="p">(</span><span class="s">&quot;[FD %i] EPoll Event WRITE&quot;</span><span class="p">,</span> <span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">handler</span><span class="o">-&gt;</span><span class="n">write</span><span class="p">)</span> <span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">events</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">EPOLLHUP</span> <span class="o">|</span> <span class="n">EPOLLERR</span> <span class="o">|</span> <span class="n">EPOLLRDHUP</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">MK_TRACE</span><span class="p">(</span><span class="s">&quot;[FD %i] EPoll Event EPOLLHUP/EPOLLER&quot;</span><span class="p">,</span> <span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">handler</span><span class="o">-&gt;</span><span class="n">error</span><span class="p">)</span> <span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">MK_TRACE</span><span class="p">(</span><span class="s">&quot;[FD %i] Epoll Event FORCE CLOSE | ret = %i&quot;</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">ret</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">(</span><span class="o">*</span><span class="n">handler</span><span class="o">-&gt;</span><span class="n">close</span><span class="p">)</span> <span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/* Check timeouts and update next one */</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">log_current_utime</span> <span class="o">&gt;=</span> <span class="n">fds_timeout</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">mk_sched_check_timeouts</span><span class="p">(</span><span class="n">sched</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">fds_timeout</span> <span class="o">=</span> <span class="n">log_current_utime</span> <span class="o">+</span> <span class="n">config</span><span class="o">-&gt;</span><span class="n">timeout</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Sometimes a socket may need to be put into sleep because it needs to wait for some
+resources, that is, epoll will not monitor any events for this socket, and the socket
+will be waked up when the resources are ready and restored to its state before sleeping.
+For this reason, a worker thread needs to maintain some extra information for every
+socket that is registered to the its epoll instance. The structure is defined as
+<code>epoll_state</code> (<code>mk_epoll.h</code>):</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm"> * An epoll_state represents the state of the descriptor from</span>
+</span><span class='line'><span class="cm"> * a Monkey core point of view.</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">epoll_state</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">int</span>          <span class="n">fd</span><span class="p">;</span>            <span class="cm">/* File descriptor                    */</span>
+</span><span class='line'>    <span class="kt">uint8_t</span>      <span class="n">mode</span><span class="p">;</span>          <span class="cm">/* Operation mode                     */</span>
+</span><span class='line'>    <span class="kt">uint32_t</span>     <span class="n">events</span><span class="p">;</span>        <span class="cm">/* Events mask                        */</span>
+</span><span class='line'>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">behavior</span><span class="p">;</span>      <span class="cm">/* Triggered behavior                 */</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">rb_node</span> <span class="n">_rb_head</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>All the <code>epoll_state</code> are linked together as a reb-black tree for quick access
+and modification. For the same sake of reducing overhead, the <code>epoll_state</code>
+nodes are pre-allocated and maintained by two queues: an available queue and a
+busy queue, it is similar to the ones of <code>sched_connection</code>, <code>epoll_state_index</code>
+(<code>mk_epoll.h</code>) plays the role of managing these nodes:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">epoll_state_index</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">size</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">rb_root</span> <span class="n">rb_queue</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">mk_list</span> <span class="n">busy_queue</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">mk_list</span> <span class="n">av_queue</span><span class="p">;</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After all the requests of a socket are successfully processed or some errors
+occur on that socket, the socket will be deleted from the epoll instance and the
+corresponding <code>epoll_state</code> will be removed from the <code>epoll_state_index</code> tree it
+belongs to.</p>
+
 <h2>Clock<a id='clock'></a></h2>
+
+<p>Clock is important for a web server as both log and HTTP header rely on the correctness
+of it. Monkey spawns an extra thread for timestamp maintaining and updating. The
+clock thread maintains two buffers of formatted strings: one is used by the logger
+thread of Monkey and the other one is used by HTTP worker threads to set header
+fields for sending back to clients.</p>
+
+<p><img src="/images/blog/clock.jpg" title="Clock" alt="Figure 5-1 Clock"></p>
+
+<p>If you explore <code>mk_clock.h</code>, you can easily find out two <code>mk_pointer</code>s that refer
+to the log and HTTP header formatted strings, which are very self-explanatory:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">extern</span> <span class="n">mk_pointer</span> <span class="n">log_current_time</span><span class="p">;</span>     <span class="cm">/* used by logger */</span>
+</span><span class='line'><span class="k">extern</span> <span class="n">mk_pointer</span> <span class="n">header_current_time</span><span class="p">;</span>  <span class="cm">/* used by HTTP workers */</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The main loop of clock worker thread is pretty simple: it just update both buffers
+every second:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">cur_time</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span><span class="p">(</span><span class="n">cur_time</span> <span class="o">!=</span> <span class="p">((</span><span class="kt">time_t</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">mk_clock_log_set_time</span><span class="p">(</span><span class="n">cur_time</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">mk_clock_header_set_time</span><span class="p">(</span><span class="n">cur_time</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/* update every second */</span>
+</span><span class='line'>    <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Everything just seems fine, but there&rsquo;s a pitfall: what if a thread (either a logger
+thread or an HTTP worker thread) access the buffers when they are being updated?
+We may get the improper formatted string results!</p>
+
+<p>So, what shall we do? One idea is to use mutex lock, lock the buffers before they
+are updated and release the lock after the update is finished. As Monkey emphasizes
+on efficiency, we want to avoid using locks whenever it is possible. Luckily we
+do get a better solution for it by using a simple trick: use double buffers for
+updating. Taken <code>log_current_time</code> as an example, Monkey allocates a string array
+of size 2 and uses one element for logger thread accessing and updates the other
+array element with new formatted string. In the end of the update, <code>log_current_time</code>
+will refer to the newly updated array element:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/* define double buffers */</span>
+</span><span class='line'><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">log_time_buffers</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* The mk_pointers have two buffers for avoid in half-way access from</span>
+</span><span class='line'><span class="cm"> * another thread while a buffer is being modified. The function below returns</span>
+</span><span class='line'><span class="cm"> * one of two buffers to work with.</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">_next_buffer</span><span class="p">(</span><span class="n">mk_pointer</span> <span class="o">*</span><span class="n">pointer</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">buffers</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="cm">/* get the array element for updating */</span>
+</span><span class='line'>    <span class="k">if</span><span class="p">(</span><span class="n">pointer</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">==</span> <span class="n">buffers</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">buffers</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">buffers</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* update the string buffer used by logger thread */</span>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">mk_clock_log_set_time</span><span class="p">(</span><span class="kt">time_t</span> <span class="n">utime</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">char</span> <span class="o">*</span><span class="n">time_string</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">tm</span> <span class="n">result</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">time_string</span> <span class="o">=</span> <span class="n">_next_buffer</span><span class="p">(</span><span class="o">&amp;</span><span class="n">log_current_time</span><span class="p">,</span> <span class="n">log_time_buffers</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">log_current_utime</span> <span class="o">=</span> <span class="n">utime</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/* update the array element that is not currently in use */</span>
+</span><span class='line'>    <span class="n">strftime</span><span class="p">(</span><span class="n">time_string</span><span class="p">,</span> <span class="n">LOG_TIME_BUFFER_SIZE</span><span class="p">,</span> <span class="s">&quot;[%d/%b/%G %T %z]&quot;</span><span class="p">,</span>
+</span><span class='line'>             <span class="n">localtime_r</span><span class="p">(</span><span class="o">&amp;</span><span class="n">utime</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">result</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/* update the pointer to the newer formatted string */</span>
+</span><span class='line'>    <span class="n">log_current_time</span><span class="p">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">time_string</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
 
 <h2>Hooks<a id='hooks'></a></h2>
 
