@@ -222,7 +222,7 @@ main function(`monkey.c`) to get a first impression of Monkey.
 Main function demonstrates the workflow of Monkey in a high level view:
 
 * As most traditional Unix program, Monkey starts with parsing command line
-options, the options are all very self-explained. Use `monkey -h` to get full
+options, the options are all very self-explanatory. Use `monkey -h` to get full
 description of options.
 
 {% codeblock lang:c %}
@@ -548,7 +548,7 @@ struct error_page {
 All the host configuration information can be found in `config` field, and why
 do we need other fields? There are three reasons for doing so:
 
-1. some fields require further parsing, such as `server_names` is a list build
+1. some fields require further parsing, such as `server_names` is a list built
 from the plain text value of entry `Servername`.
 2. stores the entry value in a field can make code for retrieving entry value
 shorter.
@@ -663,14 +663,14 @@ struct sched_connection
 };
 {% endcodeblock %}
 
-When a client issues a new connection to the Monkey server, a new `sched_connection`
-is allocated. Then Monkey will schedule this connection based on a simple load
-balance strategy: find the HTTP worker that holds the least active connections
-and dispatch the new connection to it. Although this is a trivial strategy, it
-works fine because mostly HTTP request processing and response generating won't
-take a long time. But if there is an HTTP request requires enormous amount of
-computation, other requests handled by the same worker will wait for a long time
-while other workers may be idle.
+When a client issues a new connection to the Monkey server, a new socket file
+descriptor is associated with it. Then Monkey will schedule this connection based
+on a simple load balance strategy: find the HTTP worker that holds the least active
+connections and dispatch the new connection to it. Although this is a trivial
+strategy, it works fine because mostly HTTP request processing and response
+generating won't take a long time. But if there is an HTTP request requires enormous
+amount of computation, other requests handled by the same worker will wait for a
+long time while other workers may be idle.
 
 In order to schedule connections, Monkey needs to keep track of some extra information
 of every HTTP worker. For every HTTP worker, there is a associated `sched_list_node`
@@ -715,6 +715,9 @@ connections of the corresponding worker according to their file descriptors. The
 `_rb_head` field of active `sched_connection` serve as tree nodes and are linked
 together as a red-black tree.
 
+`busy_queue` is a linked list of used scheduling connection nodes while `av_queue`
+is a linked list of available scheduling connection nodes.
+
 {% codeblock lang:c %}
 static inline int _next_target()
 {
@@ -752,10 +755,249 @@ static inline int _next_target()
 }
 {% endcodeblock %}
 
+As we can see above, Monkey will go through the `sched_list_node` array in order
+to pick up the worker with lowest load and return its index.
+
+When the socket is finally established, a new `sched_connection` structure is
+allocated for the socket to maintain some connection related information. All the
+scheduling units of a worker are pre-allocated as the maximum connection number
+a worker is able to handle is already known. What can we benefit from this strategy?
+If we allocate a new `sched_connection` every time a new connection comes and
+release the structure when the request reaches its end, it will generate some
+overhead. For a high loads Monkey instance, this may result in a degradation of
+performance.
+
+When a worker is lauched by Monkey, an array of `sched_connection` structures are
+initialized and all the elements of that array are linked to the `av_queue` list
+of the worker (function `mk_sched_register_thread` in `mk_scheduler.c`).
+
+{% codeblock lang:c %}
+/* Start filling the array */
+array = mk_mem_malloc_z(sizeof(struct sched_connection) * config->worker_capacity);
+for (i = 0; i < config->worker_capacity; i++) {
+    sched_conn = &array[i];
+    sched_conn->status = MK_SCHEDULER_CONN_AVAILABLE;
+    sched_conn->socket = -1;
+    sched_conn->arrive_time = 0;
+
+    mk_list_add(&sched_conn->_head, &sl->av_queue);
+}
+{% endcodeblock %}
+
+If a new `sched_connection` is required, the worker will remove one from the
+`av_queue` and add it to the `busy_queue` (function `mk_sched_register_client` in
+`mk_scheduler.c`).  If all the available nodes are used, the new connection will
+be dropped by Monkey.
+
+{% codeblock lang:c %}
+sched_conn = mk_list_entry_first(av_queue, struct sched_connection, _head);
+...
+/* Move to busy queue */
+mk_list_del(&sched_conn->_head);
+mk_list_add(&sched_conn->_head, &sched->busy_queue);
+{% endcodeblock %}
+
+Figure 4-1 shows a possible layout of the array and how the scheduling connection
+nodes are linked together by two queues.
+
+{% img /images/blog/scheduling_connection_list.jpg 'Scheduling Connection List' 'Figure 4-1 Scheduling Connection List'%}
+
 * ###Epoll
+
+As we have mentioned above, Monkey is an event-driven web server and the I/O event
+notification facility used by it is `epoll` (Linux-specific).
+
+For every worker thread spawned by Monkey, there is an epoll instance for monitoring
+socket file descriptors that are dispatched it. When a new connection is accepted
+by Monkey, the socket fd is first dispatched to the worker with lowest load and
+added to its epoll instance (see `mk_sched_add_client` function in `mk_scheduler.c`
+for more information).
+
+The main loop of every worker then waits for events that occurs on the socket fds that
+it is responsible to monitor, and processes the events properly by using the event
+handler of the sockets. According to the event types, different routines of the
+event handler will be called. When read event is fired on the socket, the read
+routine of event handler will be called, and when it is a write event, the
+corresponding write routine will be called, etc. (Of course there can be one than
+one events occur on a single socket fd simultaneously)
+
+Source code never lies (see `mk_epoll_init` in `mk_epoll.c`):
+
+{% codeblock lang:c %}
+/* worker thread main loop */
+while (1) {
+    ret = -1;
+    /*
+     * wait for upcoming events.
+     * notice: the timeout of epoll_wait is defined as MK_EPOLL_WAIT_TIMEOUT,
+     * currently the value is 3000 milliseconds, that is 3 seconds, if not any
+     * events are fired after 3 seconds after the last check, the worker will
+     * quit waiting and check if it needs to close some sockets due to their
+     * timeouts.
+     */
+    num_fds = epoll_wait(efd, events, max_events, MK_EPOLL_WAIT_TIMEOUT);
+
+    for (i = 0; i < num_fds; i++) {
+        fd = events[i].data.fd;
+
+        /* call the corresponding handler routine */
+        if (events[i].events & EPOLLIN) {
+            MK_TRACE("[FD %i] EPoll Event READ", fd);
+            ret = (*handler->read) (fd);
+        }
+        else if (events[i].events & EPOLLOUT) {
+            MK_TRACE("[FD %i] EPoll Event WRITE", fd);
+            ret = (*handler->write) (fd);
+        }
+        else if (events[i].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP)) {
+            MK_TRACE("[FD %i] EPoll Event EPOLLHUP/EPOLLER", fd);
+            ret = (*handler->error) (fd);
+        }
+
+        if (ret < 0) {
+            MK_TRACE("[FD %i] Epoll Event FORCE CLOSE | ret = %i", fd, ret);
+            (*handler->close) (fd);
+        }
+    }
+
+    /* Check timeouts and update next one */
+    if (log_current_utime >= fds_timeout) {
+        mk_sched_check_timeouts(sched);
+        fds_timeout = log_current_utime + config->timeout;
+    }
+}
+{% endcodeblock %}
+
+Sometimes a socket may need to be put into sleep because it needs to wait for some
+resources, that is, epoll will not monitor any events for this socket, and the socket
+will be waked up when the resources are ready and restored to its state before sleeping.
+For this reason, a worker thread needs to maintain some extra information for every
+socket that is registered to the its epoll instance. The structure is defined as
+`epoll_state` (`mk_epoll.h`):
+
+{% codeblock lang:c %}
+/*
+ * An epoll_state represents the state of the descriptor from
+ * a Monkey core point of view.
+ */
+struct epoll_state
+{
+    int          fd;            /* File descriptor                    */
+    uint8_t      mode;          /* Operation mode                     */
+    uint32_t     events;        /* Events mask                        */
+    unsigned int behavior;      /* Triggered behavior                 */
+
+    struct rb_node _rb_head;
+    struct mk_list _head;
+};
+{% endcodeblock %}
+
+All the `epoll_state` are linked together as a reb-black tree for quick access
+and modification. For the same sake of reducing overhead, the `epoll_state`
+nodes are pre-allocated and maintained by two queues: an available queue and a
+busy queue, it is similar to the ones of `sched_connection`, `epoll_state_index`
+(`mk_epoll.h`) plays the role of managing these nodes:
+
+{% codeblock lang:c %}
+struct epoll_state_index
+{
+    int size;
+
+    struct rb_root rb_queue;
+    struct mk_list busy_queue;
+    struct mk_list av_queue;
+};
+{% endcodeblock %}
+
+After all the requests of a socket are successfully processed or some errors
+occur on that socket, the socket will be deleted from the epoll instance and the
+corresponding `epoll_state` will be removed from the `epoll_state_index` tree it
+belongs to.
 
 Clock<a id='clock'></a>
 -----
+
+Clock is important for a web server as both log and HTTP header rely on the correctness
+of it. Monkey spawns an extra thread for timestamp maintaining and updating. The
+clock thread maintains two buffers of formatted strings: one is used by the logger
+thread of Monkey and the other one is used by HTTP worker threads to set header
+fields for sending back to clients.
+
+{% img /images/blog/clock.jpg 'Clock' 'Figure 5-1 Clock'%}
+
+If you explore `mk_clock.h`, you can easily find out two `mk_pointer`s that refer
+to the log and HTTP header formatted strings, which are very self-explanatory:
+
+{% codeblock lang:c %}
+extern mk_pointer log_current_time;     /* used by logger */
+extern mk_pointer header_current_time;  /* used by HTTP workers */
+{% endcodeblock %}
+
+The main loop of clock worker thread is pretty simple: it just update both buffers
+every second:
+
+{% codeblock lang:c %}
+while (1) {
+    cur_time = time(NULL);
+
+    if(cur_time != ((time_t)-1)) {
+        mk_clock_log_set_time(cur_time);
+        mk_clock_header_set_time(cur_time);
+    }
+
+    /* update every second */
+    sleep(1);
+}
+{% endcodeblock %}
+
+Everything just seems fine, but there's a pitfall: what if a thread (either a logger
+thread or an HTTP worker thread) access the buffers when they are being updated?
+We may get the improper formatted string results!
+
+So, what shall we do? One idea is to use mutex lock, lock the buffers before they
+are updated and release the lock after the update is finished. As Monkey emphasizes
+on efficiency, we want to avoid using locks whenever it is possible. Luckily we
+do get a better solution for it by using a simple trick: use double buffers for
+updating. Taken `log_current_time` as an example, Monkey allocates a string array
+of size 2 and uses one element for logger thread accessing and updates the other
+array element with new formatted string. In the end of the update, `log_current_time`
+will refer to the newly updated array element:
+
+{% codeblock lang:c %}
+/* define double buffers */
+static char *log_time_buffers[2];
+
+/* The mk_pointers have two buffers for avoid in half-way access from
+ * another thread while a buffer is being modified. The function below returns
+ * one of two buffers to work with.
+ */
+static inline char *_next_buffer(mk_pointer *pointer, char **buffers)
+{
+    /* get the array element for updating */
+    if(pointer->data == buffers[0]) {
+        return buffers[1];
+    } else {
+        return buffers[0];
+    }
+}
+
+/* update the string buffer used by logger thread */
+static void mk_clock_log_set_time(time_t utime)
+{
+    char *time_string;
+    struct tm result;
+
+    time_string = _next_buffer(&log_current_time, log_time_buffers);
+    log_current_utime = utime;
+
+    /* update the array element that is not currently in use */
+    strftime(time_string, LOG_TIME_BUFFER_SIZE, "[%d/%b/%G %T %z]",
+             localtime_r(&utime, &result));
+
+    /* update the pointer to the newer formatted string */
+    log_current_time.data = time_string;
+}
+{% endcodeblock %}
 
 Hooks<a id='hooks'></a>
 -----
