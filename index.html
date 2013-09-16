@@ -7,9 +7,8 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="In the first half of week 11, I spent most of my time completing the documentation
-of the PostgreSQL package. You may check it out here.
-Bugs and &hellip;">
+	<meta name="description" content="This week I made some minor improvments to the Duda MariaDB package in order to
+shutdown client socket correctly if the database connection closes &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -78,6 +77,63 @@ Bugs and &hellip;">
 		
 	
 	<div id="content" class="inner">
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/09/16/gsoc-status-week-13/">
+		
+			GSoC Status: Week 13</a>
+	</h2>
+	<div class="entry-content">
+		<p><img src="/images/blog/writing.jpg"></p>
+
+<p>This week I made some minor improvments to the Duda MariaDB package in order to
+shutdown client socket correctly if the database connection closes unexpectedly.
+Pagination had been added to the demo web services of both packages to make the
+examples more complete.</p>
+
+<p>Meanwhile, the adventure of Monkey internals continued and I had finished two
+more sections of the blog (Scheduler and Clock), as I promised last week. If you
+find this interesting or want to make some contribution, please don&rsquo;t hesitate
+to write me emails :&ndash;).</p>
+
+<p>For the next week, the packages will start to be merged into the source base of
+duda, I will keep my eyes on that. Also, I will prepare for the hard &lsquo;pencil down&rsquo;
+date, though no big changes will happen to the code bases, there might be room
+for tiny improvments. Last but not least, I will carry on with the internal blog,
+two more sections are expected to be finished by the end of next week.</p>
+
+
+		
+		<a href="/blog/2013/09/16/gsoc-status-week-13/" class="more-link">Read on &rarr;</a>
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-16T09:14:00+08:00" pubdate data-updated="true">Sep 16<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
 
 
     <article class="post">
@@ -621,69 +677,6 @@ and integrate it with Duda.</p>
 
 
 <time datetime="2013-07-06T11:21:00+08:00" pubdate data-updated="true">Jul 6<span>th</span>, 2013</time></div>
-	<div class="tags">
-
-
-	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
-
-
-</div>
-	
-</div></article>
-
-
-    <article class="post">
-	<h2 class="title">
-		
-		<a href="/blog/2013/06/30/gsoc-status-week-2/">
-		
-			GSoC Status: Week 2</a>
-	</h2>
-	<div class="entry-content">
-		<p><img src="/images/blog/jump_monkey.jpg">
-This week I came out with the API draft for Duda MariaDB package, it has been
-pushed to Github but is still under development and may be altered later. For your
-interest, you can refer to the repository and leave me some comments:
-<a href="https://github.com/swpd/duda_mariadb">Duda MariaDB package</a>.</p>
-
-<p>Roughly speaking, the APIs were influenced by the <code>mariasql</code> Node.js package and
-the asynchronous access code of <code>redis</code>. Currently there are three header files,
-<code>mariadb.h</code> contains event handling functions declaration for MariaDB connection
-sockets and some global definitions; <code>connection.h</code> contains code related to
-MariaDB client connections, it is responsible for connection management; <code>query.h</code>
-takes care of stuffs related to a MariaDB query, every connection can have several
-queries, the queries arer linked as a list and will be executed one by one.</p>
-
-<p><a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">Monkey Internals</a>
-was updated this week (composed part of the scheduler section; the command line
-utility section was finished), the remaining sections are still under writing.</p>
-
-<p>This week I also moved to my new apartment, everything got settled down and it
-is a nice place :D.</p>
-
-<p>For the next week, I will be implementing the APIs and try to put the package into
-working.</p>
-
-
-		
-		<a href="/blog/2013/06/30/gsoc-status-week-2/" class="more-link">Read on &rarr;</a>
-	</div>
-
-
-<div class="meta">
-	<div class="date">
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-30T23:54:00+08:00" pubdate data-updated="true">Jun 30<span>th</span>, 2013</time></div>
 	<div class="tags">
 
 

@@ -1,0 +1,201 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>GSoC Status: Week 13 - swpd.me</title>
+	<meta name="author" content="swpd">
+
+	
+	<meta name="description" content="This week I made some minor improvments to the Duda MariaDB package in order to
+shutdown client socket correctly if the database connection closes &hellip;">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+	<link href="/atom.xml" rel="alternate" title="swpd.me" type="application/atom+xml">
+	<link rel="canonical" href="">
+	<link href="/favicon.png" rel="shortcut icon">
+	<link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	
+</head>
+
+<body>
+	<header id="header" class="inner"><h1><a href="/">swpd.me</a></h1>
+<nav id="main-nav"><ul class="main">
+	<li><a href="/">Blog</a></li>
+	<li><a href="/blog/archives">Archives</a></li>
+</ul>
+</nav>
+<nav id="mobile-nav">
+	<div class="alignleft menu">
+		<a class="button">Menu</a>
+		<div class="container"><ul class="main">
+	<li><a href="/">Blog</a></li>
+	<li><a href="/blog/archives">Archives</a></li>
+</ul>
+</div>
+	</div>
+	<div class="alignright search">
+		<a class="button"></a>
+		<div class="container">
+			<form action="http://google.com/search" method="get">
+				<input type="text" name="q" results="0">
+				<input type="hidden" name="q" value="site:swpd.github.io">
+			</form>
+		</div>
+	</div>
+</nav>
+<nav id="sub-nav" class="alignright">
+	<div class="social">
+		
+		
+		
+		<a class="twitter" href="http://twitter.com/swpdtz" title="Twitter">Twitter</a>
+		
+		
+		<a class="github" href="https://github.com/swpd" title="GitHub">GitHub</a>
+		
+    
+		
+		
+		
+		
+		
+		<a class="rss" href="/atom.xml" title="RSS">RSS</a>
+		
+	</div>
+	<form class="search" action="http://google.com/search" method="get">
+		<input class="alignright" type="text" name="q" results="0">
+		<input type="hidden" name="q" value="site:swpd.github.io">
+	</form>
+</nav>
+
+</header>
+	
+		
+	
+	<div id="content" class="inner"><article class="post">
+	<h2 class="title">GSoC Status: Week 13</h2>
+	<div class="entry-content"><p><img src="/images/blog/writing.jpg"></p>
+
+<p>This week I made some minor improvments to the Duda MariaDB package in order to
+shutdown client socket correctly if the database connection closes unexpectedly.
+Pagination had been added to the demo web services of both packages to make the
+examples more complete.</p>
+
+<p>Meanwhile, the adventure of Monkey internals continued and I had finished two
+more sections of the blog (Scheduler and Clock), as I promised last week. If you
+find this interesting or want to make some contribution, please don&rsquo;t hesitate
+to write me emails :&ndash;).</p>
+
+<p>For the next week, the packages will start to be merged into the source base of
+duda, I will keep my eyes on that. Also, I will prepare for the hard &lsquo;pencil down&rsquo;
+date, though no big changes will happen to the code bases, there might be room
+for tiny improvments. Last but not least, I will carry on with the internal blog,
+two more sections are expected to be finished by the end of next week.</p>
+
+<!-- more -->
+
+</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-16T09:14:00+08:00" pubdate data-updated="true">Sep 16<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
+
+	<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	
+	<a class="addthis_counter addthis_pill_style"></a>
+	</div>
+  <script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid="></script>
+</div>
+
+
+
+<section id="comment">
+    <h2 class="title">Comments</h2>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</section>
+</div>
+	<footer id="footer" class="inner"><div>
+    <a href="http://www.vim.org/">
+        <img src="/images/vim_powered.gif" title="Powered by Vim" alt="Powered by Vim">
+    </a>
+    <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US">
+        <img src="/images/cc.png" title="Creative Commons" alt="Creative Commons">
+    </a>
+</div>
+Copyright &copy; 2013
+
+    swpd
+
+</footer>
+	<script src="/javascripts/slash.js"></script>
+<script src="/javascripts/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script> <!-- Delete or comment this line to disable Fancybox -->
+
+
+<script type="text/javascript">
+      var disqus_shortname = 'swpdtz';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://swpd.github.io/blog/2013/09/16/gsoc-status-week-13/';
+        var disqus_url = 'http://swpd.github.io/blog/2013/09/16/gsoc-status-week-13/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-41181986-1']);
+		_gaq.push(['_trackPageview']);
+
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		})();
+	</script>
+
+
+
+</body>
+</html>

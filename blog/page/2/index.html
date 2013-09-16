@@ -7,8 +7,8 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="During the first week of GSoC I was investigating the APIs of MariaDB to get myself
-familiar with its usages. I had done several experiments with a &hellip;">
+	<meta name="description" content="This week I came out with the API draft for Duda MariaDB package, it has been
+pushed to Github but is still under development and may be altered &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -77,6 +77,69 @@ familiar with its usages. I had done several experiments with a &hellip;">
 		
 	
 	<div id="content" class="inner">
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/06/30/gsoc-status-week-2/">
+		
+			GSoC Status: Week 2</a>
+	</h2>
+	<div class="entry-content">
+		<p><img src="/images/blog/jump_monkey.jpg">
+This week I came out with the API draft for Duda MariaDB package, it has been
+pushed to Github but is still under development and may be altered later. For your
+interest, you can refer to the repository and leave me some comments:
+<a href="https://github.com/swpd/duda_mariadb">Duda MariaDB package</a>.</p>
+
+<p>Roughly speaking, the APIs were influenced by the <code>mariasql</code> Node.js package and
+the asynchronous access code of <code>redis</code>. Currently there are three header files,
+<code>mariadb.h</code> contains event handling functions declaration for MariaDB connection
+sockets and some global definitions; <code>connection.h</code> contains code related to
+MariaDB client connections, it is responsible for connection management; <code>query.h</code>
+takes care of stuffs related to a MariaDB query, every connection can have several
+queries, the queries arer linked as a list and will be executed one by one.</p>
+
+<p><a href="http://swpd.github.io/blog/2013/05/18/monkey-http-daemon-internals/">Monkey Internals</a>
+was updated this week (composed part of the scheduler section; the command line
+utility section was finished), the remaining sections are still under writing.</p>
+
+<p>This week I also moved to my new apartment, everything got settled down and it
+is a nice place :D.</p>
+
+<p>For the next week, I will be implementing the APIs and try to put the package into
+working.</p>
+
+
+		
+		<a href="/blog/2013/06/30/gsoc-status-week-2/" class="more-link">Read on &rarr;</a>
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-30T23:54:00+08:00" pubdate data-updated="true">Jun 30<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
 
 
     <article class="post">
