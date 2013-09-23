@@ -4,7 +4,7 @@
   <title><![CDATA[Category: HTTP | swpd.me]]></title>
   <link href="http://swpd.github.io/blog/categories/http/atom.xml" rel="self"/>
   <link href="http://swpd.github.io/"/>
-  <updated>2013-09-16T09:44:15+08:00</updated>
+  <updated>2013-09-24T02:25:44+08:00</updated>
   <id>http://swpd.github.io/</id>
   <author>
     <name><![CDATA[swpd]]></name>
@@ -1303,7 +1303,7 @@ nodes are linked together by two queues.</p>
 <p><img src="/images/blog/scheduling_connection_list.jpg" title="&lsquo;Scheduling Connection List&rsquo; &lsquo;Figure 4-1 Scheduling Connection List&rsquo;" ></p>
 
 <ul>
-<li><h3>Epoll</h3></li>
+<li><h3>Epoll<a id='epoll'></a></h3></li>
 </ul>
 
 
@@ -1642,6 +1642,329 @@ will refer to the newly updated array element:</p>
 </span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
 <h2>Hooks<a id='hooks'></a></h2>
+
+<p>Monkey is designed with extendability in mind, it comes with a set of predefined
+hooks. By doing so, submodules of Monkey are decoupled from the kernel and extracted
+into independent plugins that can be easily replaced by only altering the plugin
+configuration file.</p>
+
+<p><img src="/images/blog/hook.jpg" title="&lsquo;Hook&rsquo; &lsquo;Figure 6-1 Hook&rsquo;" ></p>
+
+<p>All hooks can be divided into five categories: mandatory, events, core, stages
+and networking (for official specification, please check out <code>/path/to/monkey/plugins/API.txt</code>):</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>.
+</span><span class='line'>|&mdash; Mandatory
+</span><span class='line'>|   |&mdash; &lt;em>mkp_init                   [called everytime a plugin dynamic library is loaded]
+</span><span class='line'>|   &lt;code>-- _mkp_exit                   [called before Monkey exits]
+</span><span class='line'>|-- Events
+</span><span class='line'>|   |-- _mkp_event_read             [called when read event comes to a socket]
+</span><span class='line'>|   |-- _mkp_event_write            [called when write event comes to a socket]
+</span><span class='line'>|   |-- _mkp_event_close            [called when a socket is closed]
+</span><span class='line'>|   |-- _mkp_event_error            [called when a socket encounters error]
+</span><span class='line'>|  &lt;/code>&mdash; &lt;/em>mkp_event_timeout          [called when timeout occurs on a socket]
+</span><span class='line'>|&mdash; Core
+</span><span class='line'>|   |&mdash; &lt;em>mkp_core_prctx             [called before Monkey enters main loop]
+</span><span class='line'>|   &lt;code>-- _mkp_core_thctx             [called everytime before a worker enters main loop]
+</span><span class='line'>|-- Stages
+</span><span class='line'>|   |-- _mkp_stage_10               [called when a remote socket is accepted by Monkey]
+</span><span class='line'>|   |-- _mkp_stage_20               [called when an HTTP request is received]
+</span><span class='line'>|   |-- _mkp_stage_30               [called when dealing with an HTTP request]
+</span><span class='line'>|   |-- _mkp_stage_40               [called after an HTTP request is served]
+</span><span class='line'>|  &lt;/code>&mdash; &lt;/em>mkp_stage_50               [called when the remote socket has been closed]
+</span><span class='line'>`&mdash; Networking&lt;/p>
+</span><span class='line'>
+</span><span class='line'>&lt;pre>&lt;code>|-- _mkp_network_io_accept`     [called when a new socket comes]
+</span><span class='line'>|-- _mkp_network_io_read        [called when reading from a remote socket]
+</span><span class='line'>|-- _mkp_network_io_write       [called when writing to a remote socket]
+</span><span class='line'>|-- _mkp_network_io_writev      [similar to write, with scatter and gather I/O]
+</span><span class='line'>|-- _mkp_network_io_close       [called when closing a remote socket]
+</span><span class='line'>|-- _mkp_network_io_connect     [called when connecting a socket]
+</span><span class='line'>|-- _mkp_network_io_send_file   [called when sending file]
+</span><span class='line'>|-- _mkp_network_ip_addr        [called when getting ip address from a socket]
+</span><span class='line'>`-- _mkp_network_ip_maxlen      [called when getting max ip address length]
+</span><span class='line'>&lt;/code>&lt;/pre>
+</span><span class='line'>
+</span><span class='line'>&lt;p></span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>The definition of a <code>plugin</code> is given by <code>mk_plugin.h</code>, as you can tell, all available
+hooks are included in this structure:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">plugin</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">char</span> <span class="o">*</span><span class="n">shortname</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">version</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">;</span>
+</span><span class='line'><span class="kt">void</span> <span class="o">*</span><span class="n">handler</span><span class="p">;</span>
+</span><span class='line'><span class="cm">/* hooks that registered by this plugin */</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">hooks</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* mandatory hooks */</span>
+</span><span class='line'><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="p">)</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="p">);</span>
+</span><span class='line'><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">exit</span><span class="p">)</span> <span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">struct</span> <span class="n">plugin_core</span> <span class="n">core</span><span class="p">;</span>            <span class="cm">/* core hooks */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">plugin_stage</span> <span class="n">stage</span><span class="p">;</span>          <span class="cm">/* stages hooks */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">plugin_network_io</span> <span class="n">net_io</span><span class="p">;</span>    <span class="cm">/* networking hooks */</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* events hooks */</span>
+</span><span class='line'><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">event_read</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span><span class='line'><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">event_write</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span><span class='line'><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">event_error</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span><span class='line'><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">event_close</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span><span class='line'><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">event_timeout</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* Each plugin has a thread key for it&#39;s global data */</span>
+</span><span class='line'><span class="n">pthread_key_t</span> <span class="o">*</span><span class="n">thread_key</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* list node */</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="n">_head</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>A Monkey plugin only specifies hooks of its own interest in field <code>hooks</code> (bit
+combinations) and implement the needed functions, Monkey will call the corresponding
+hook functions at the right time.</p>
+
+<p>The hook function pointers of a <code>plugin</code> will point to the associated code within
+its dynamic library after Monkey loads it (see <code>mk_plugin_alloc</code> in <code>mk_plugin.c</code>):</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">plugin</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">mk_plugin_alloc</span><span class="p">(</span><span class="kt">void</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">handler</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">struct</span> <span class="n">plugin</span> <span class="o">*</span><span class="n">p</span><span class="p">;</span>
+</span><span class='line'><span class="n">p</span> <span class="o">=</span> <span class="n">mk_mem_malloc_z</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">plugin</span><span class="p">));</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="cm">/* Mandatory functions */</span>
+</span><span class='line'><span class="n">p</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">init</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="p">)())</span> <span class="n">mk_plugin_load_symbol</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="s">&quot;_mkp_init&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">p</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">exit</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="p">)())</span> <span class="n">mk_plugin_load_symbol</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="s">&quot;_mkp_exit&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>Mandatory hooks are required for every plugin that is registered to Monkey.
+Hook <code>_mkp_init</code> is used to set up some necessary resources for the plugin, this
+hook is triggered everytime Monkey finished loading library of a plugin
+(see <code>mk_plugin_read_config</code> in <code>mk_plugin.c</code>):</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="nf">mk_plugin_read_config</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="cm">/* iterate all the enabled plugins */</span>
+</span><span class='line'><span class="n">mk_list_foreach</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">section</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">entries</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="p">...</span>
+</span><span class='line'>    <span class="cm">/* call plugin init hook */</span>
+</span><span class='line'>    <span class="n">ret</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">api</span><span class="p">,</span> <span class="n">plugin_confdir</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><code>_mkp_exit</code> works exactly the opposite way of <code>_mkp_init</code>, it will release all
+the resources used by the plugin before Monkey exits.</p>
+
+<ul>
+<li><p>Events hooks are used to work with the event-driven working manner of Monkey,
+a bundle of event hook functions are used for different events that occur on a
+remote socket file descriptor. When a read event is fired, the hook function for
+read handling will get called by Monkey, other events will trigger their corresponding
+hook functions likewise (checkout <code>mk_epoll_init</code> in <code>mk_epoll.c</code>, the code will
+not be duplicated here because we&rsquo;ve already discussed it in <a href="#epoll">epoll</a>):</p></li>
+<li><p>Core hooks are mainly used to initialize either process specific data or thread
+specific data that will be used by the plugin. <code>_mkp_core_prctx</code> will be called
+only once before Monkey spawning any worker thread to make sure the data are
+synchronous (see <code>mk_plugin_core_process</code> in <code>mk_plugin.c</code>), <code>_mkp_core_thctx</code>
+will be called before spawning a new worker thread (see <code>mk_plugin_core_thread</code>
+in <code>mk_plugin.c</code>):</p></li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">this</span> <span class="n">function</span> <span class="n">is</span> <span class="n">called</span> <span class="n">by</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">main</span><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="n">function</span> <span class="n">of</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">monkey</span><span class="p">.</span><span class="n">c</span><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="kt">void</span> <span class="n">mk_plugin_core_process</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="n">mk_list_foreach</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">plugins</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">node</span> <span class="o">=</span> <span class="n">mk_list_entry</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="k">struct</span> <span class="n">plugin</span><span class="p">,</span> <span class="n">_head</span><span class="p">);</span>
+</span><span class='line'>    <span class="cm">/* call core process context hook */</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">node</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">core</span><span class="p">.</span><span class="n">prctx</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">node</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">core</span><span class="p">.</span><span class="n">prctx</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">this</span> <span class="n">function</span> <span class="n">is</span> <span class="n">called</span> <span class="n">by</span> <span class="n">function</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">mk_sched_launch_worker_loop</span><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="n">in</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">mk_scheduler</span><span class="p">.</span><span class="n">c</span><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="kt">void</span> <span class="n">mk_plugin_core_thread</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">struct</span> <span class="n">plugin</span> <span class="o">*</span><span class="n">node</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">mk_list</span> <span class="o">*</span><span class="n">head</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mk_list_foreach</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">config</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">plugins</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">node</span> <span class="o">=</span> <span class="n">mk_list_entry</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="k">struct</span> <span class="n">plugin</span><span class="p">,</span> <span class="n">_head</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/* call core thread context hook */</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">node</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">core</span><span class="p">.</span><span class="n">thctx</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">node</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">core</span><span class="p">.</span><span class="n">thctx</span><span class="p">();</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li><p>Stages hooks are closely associated with the HTTP request lifecycle which lies
+in the kernel of Monkey. We&rsquo;ll explain how Monkey handle HTTP requests in next
+section, by now we just need to keep in mind that Monkey will call the corresponding
+stage hook functions when a request reaches different stages.</p></li>
+<li><p>Networking hooks stays in the network layer of Monkey to provide necessary functions
+for socket handling. Two available plugins are currently provided by Monkey: <code>liana</code>
+offers basic socket layer while <code>polarssl</code> offers an encrypted one.</p></li>
+</ul>
+
 
 <h2>HTTP Requests and Responses<a id='http'></a></h2>
 

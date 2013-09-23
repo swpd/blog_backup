@@ -7,8 +7,9 @@
 	<meta name="author" content="swpd">
 
 	
-	<meta name="description" content="This week I came out with the API draft for Duda MariaDB package, it has been
-pushed to Github but is still under development and may be altered &hellip;">
+	<meta name="description" content="This week I spent most of my time implementing the MariaDB package, it is still
+incomplete but I&rsquo;ve pushed it to Github, check it
+out if you &hellip;">
 	
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -77,6 +78,67 @@ pushed to Github but is still under development and may be altered &hellip;">
 		
 	
 	<div id="content" class="inner">
+
+
+    <article class="post">
+	<h2 class="title">
+		
+		<a href="/blog/2013/07/06/gsoc-status-week-3/">
+		
+			GSoC Status: Week 3</a>
+	</h2>
+	<div class="entry-content">
+		<p><img src="/images/blog/running_monkey.jpg">
+This week I spent most of my time implementing the MariaDB package, it is still
+incomplete but I&rsquo;ve pushed it to Github, check <a href="https://github.com/swpd/duda_mariadb">it</a>
+out if you are interested.</p>
+
+<p>The problem I am currently stuck is for every continue part of the asynchronous
+version MariaDB APIs, we need to pass the <code>ready_status</code>(bitmask of all events
+occurred on a MariaDB connection socket) in able to issue the call. However,
+the socket event callback functions are spilt into five sepreated functions,
+and every function only knows the corresponding event it shall handle but no idea
+about all the events available on the MariaDB socket. This makes it more tricky
+to write the callback functions right, I need to make sure what events actually
+occurs on every stage of a MariaDB&rsquo;s connection lifecycle.</p>
+
+<p>Meanwhile, I am also discussing with Eduardo Silva to see what we can do with it.
+He did offer me some useful advinces and will show me some examples later. And
+as he recommended, we may add connection pool support to our MariaDB package to
+avoid connect-on-demand mechanism.</p>
+
+<p>For the next week, I will keep hard working on making the implementation complete
+and integrate it with Duda.</p>
+
+
+		
+		<a href="/blog/2013/07/06/gsoc-status-week-3/" class="more-link">Read on &rarr;</a>
+	</div>
+
+
+<div class="meta">
+	<div class="date">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-06T11:21:00+08:00" pubdate data-updated="true">Jul 6<span>th</span>, 2013</time></div>
+	<div class="tags">
+
+
+	<a class='category' href='/blog/categories/gsoc/'>GSoC</a>, <a class='category' href='/blog/categories/monkey/'>Monkey</a>, <a class='category' href='/blog/categories/weekly-status/'>Weekly Status</a>
+
+
+</div>
+	
+</div></article>
 
 
     <article class="post">
