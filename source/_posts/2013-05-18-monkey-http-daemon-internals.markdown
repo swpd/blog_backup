@@ -802,7 +802,7 @@ nodes are linked together by two queues.
 
 {% img /images/blog/scheduling_connection_list.jpg 'Scheduling Connection List' 'Figure 4-1 Scheduling Connection List'%}
 
-* ###Epoll
+* ###Epoll<a id='epoll'></a>
 
 As we have mentioned above, Monkey is an event-driven web server and the I/O event
 notification facility used by it is `epoll` (Linux-specific).
@@ -1001,6 +1001,182 @@ static void mk_clock_log_set_time(time_t utime)
 
 Hooks<a id='hooks'></a>
 -----
+
+Monkey is designed with extendability in mind, it comes with a set of predefined
+hooks. By doing so, submodules of Monkey are decoupled from the kernel and extracted
+into independent plugins that can be easily replaced by only altering the plugin
+configuration file.
+
+{% img /images/blog/hook.jpg 'Hook' 'Figure 6-1 Hook'%}
+
+All hooks can be divided into five categories: mandatory, events, core, stages
+and networking (for official specification, please check out `/path/to/monkey/plugins/API.txt`):
+
+{% codeblock %}
+.
+|-- Mandatory
+|   |-- _mkp_init                   [called everytime a plugin dynamic library is loaded]
+|   `-- _mkp_exit                   [called before Monkey exits]
+|-- Events
+|   |-- _mkp_event_read             [called when read event comes to a socket]
+|   |-- _mkp_event_write            [called when write event comes to a socket]
+|   |-- _mkp_event_close            [called when a socket is closed]
+|   |-- _mkp_event_error            [called when a socket encounters error]
+|   `-- _mkp_event_timeout          [called when timeout occurs on a socket]
+|-- Core
+|   |-- _mkp_core_prctx             [called before Monkey enters main loop]
+|   `-- _mkp_core_thctx             [called everytime before a worker enters main loop]
+|-- Stages
+|   |-- _mkp_stage_10               [called when a remote socket is accepted by Monkey]
+|   |-- _mkp_stage_20               [called when an HTTP request is received]
+|   |-- _mkp_stage_30               [called when dealing with an HTTP request]
+|   |-- _mkp_stage_40               [called after an HTTP request is served]
+|   `-- _mkp_stage_50               [called when the remote socket has been closed]
+`-- Networking
+    |-- _mkp_network_io_accept`     [called when a new socket comes]
+    |-- _mkp_network_io_read        [called when reading from a remote socket]
+    |-- _mkp_network_io_write       [called when writing to a remote socket]
+    |-- _mkp_network_io_writev      [similar to write, with scatter and gather I/O]
+    |-- _mkp_network_io_close       [called when closing a remote socket]
+    |-- _mkp_network_io_connect     [called when connecting a socket]
+    |-- _mkp_network_io_send_file   [called when sending file]
+    |-- _mkp_network_ip_addr        [called when getting ip address from a socket]
+    `-- _mkp_network_ip_maxlen      [called when getting max ip address length]
+{% endcodeblock %}
+
+The definition of a `plugin` is given by `mk_plugin.h`, as you can tell, all available
+hooks are included in this structure:
+
+{% codeblock lang:c %}
+struct plugin
+{
+    char *shortname;
+    char *name;
+    char *version;
+    char *path;
+    void *handler;
+    /* hooks that registered by this plugin */
+    unsigned int hooks;
+
+    /* mandatory hooks */
+    int (*init) (void *, char *);
+    int (*exit) ();
+
+    struct plugin_core core;            /* core hooks */
+    struct plugin_stage stage;          /* stages hooks */
+    struct plugin_network_io net_io;    /* networking hooks */
+
+    /* events hooks */
+    int (*event_read) (int);
+    int (*event_write) (int);
+    int (*event_error) (int);
+    int (*event_close) (int);
+    int (*event_timeout) (int);
+
+    /* Each plugin has a thread key for it's global data */
+    pthread_key_t *thread_key;
+
+    /* list node */
+    struct mk_list _head;
+};
+{% endcodeblock %}
+
+A Monkey plugin only specifies hooks of its own interest in field `hooks` (bit
+combinations) and implement the needed functions, Monkey will call the corresponding
+hook functions at the right time.
+
+The hook function pointers of a `plugin` will point to the associated code within
+its dynamic library after Monkey loads it (see `mk_plugin_alloc` in `mk_plugin.c`):
+
+{% codeblock lang:c %}
+struct plugin *mk_plugin_alloc(void *handler, const char *path)
+{
+    struct plugin *p;
+    p = mk_mem_malloc_z(sizeof(struct plugin));
+    ...
+    /* Mandatory functions */
+    p->init = (int (*)()) mk_plugin_load_symbol(handler, "_mkp_init");
+    p->exit = (int (*)()) mk_plugin_load_symbol(handler, "_mkp_exit");
+    ...
+}
+{% endcodeblock %}
+
+* Mandatory hooks are required for every plugin that is registered to Monkey.
+Hook `_mkp_init` is used to set up some necessary resources for the plugin, this
+hook is triggered everytime Monkey finished loading library of a plugin
+(see `mk_plugin_read_config` in `mk_plugin.c`):
+
+{% codeblock lang:c %}
+void mk_plugin_read_config()
+{
+    ...
+    /* iterate all the enabled plugins */
+    mk_list_foreach(head, &section->entries) {
+        ...
+        /* call plugin init hook */
+        ret = p->init(&api, plugin_confdir);
+        ...
+    }
+}
+{% endcodeblock %}
+
+`_mkp_exit` works exactly the opposite way of `_mkp_init`, it will release all
+the resources used by the plugin before Monkey exits.
+
+* Events hooks are used to work with the event-driven working manner of Monkey,
+a bundle of event hook functions are used for different events that occur on a
+remote socket file descriptor. When a read event is fired, the hook function for
+read handling will get called by Monkey, other events will trigger their corresponding
+hook functions likewise (checkout `mk_epoll_init` in `mk_epoll.c`, the code will
+not be duplicated here because we've already discussed it in [epoll](#epoll)):
+
+* Core hooks are mainly used to initialize either process specific data or thread
+specific data that will be used by the plugin. `_mkp_core_prctx` will be called
+only once before Monkey spawning any worker thread to make sure the data are
+synchronous (see `mk_plugin_core_process` in `mk_plugin.c`), `_mkp_core_thctx`
+will be called before spawning a new worker thread (see `mk_plugin_core_thread`
+in `mk_plugin.c`):
+
+{% codeblock lang:c %}
+/* this function is called by `main` function of `monkey.c` */
+void mk_plugin_core_process()
+{
+    ...
+    mk_list_foreach(head, config->plugins) {
+        node = mk_list_entry(head, struct plugin, _head);
+        /* call core process context hook */
+        if (node->core.prctx) {
+            node->core.prctx(config);
+        }
+    }
+}
+
+/* this function is called by function `mk_sched_launch_worker_loop` in `mk_scheduler.c` */
+void mk_plugin_core_thread()
+{
+
+    struct plugin *node;
+    struct mk_list *head;
+
+    mk_list_foreach(head, config->plugins) {
+        node = mk_list_entry(head, struct plugin, _head);
+
+        /* call core thread context hook */
+        if (node->core.thctx) {
+            node->core.thctx();
+        }
+    }
+}
+{% endcodeblock %}
+
+* Stages hooks are closely associated with the HTTP request lifecycle which lies
+in the kernel of Monkey. We'll explain how Monkey handle HTTP requests in next
+section, by now we just need to keep in mind that Monkey will call the corresponding
+stage hook functions when a request reaches different stages.
+
+* Networking hooks stays in the network layer of Monkey to provide necessary functions
+for socket handling. Two available plugins are currently provided by Monkey: `liana`
+offers basic socket layer while `polarssl` offers an encrypted one.
 
 HTTP Requests and Responses<a id='http'></a>
 ---------------------------
